@@ -1,0 +1,723 @@
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useStore } from '../../../store';
+import { 
+  Mail, Lock, Eye, EyeOff, Sparkles, ArrowLeft, CheckCircle,
+  AlertCircle, Loader2, Zap
+} from 'lucide-react';
+
+export default function AuthPage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { login, loginWithGoogle, register, resetPassword, darkMode, toggleTheme, addNotification, updateUser } = useStore();
+  
+  const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showGoogleSetup, setShowGoogleSetup] = useState(false);
+  
+  // OTP States
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    displayName: '',
+    role: 'solver',
+    profession: 'student',
+    collegeName: '',
+    stream: '',          // User can type their course (e.g. B.Tech, B.Sc, BA)
+    courseYear: '1',     // 1st, 2nd, 3rd, 4th year
+    semester: '1',       // Dynamic based on year
+    orgName: '',
+    city: '',
+    state: ''
+  });
+
+  useEffect(() => {
+    const modeParam = searchParams.get('mode');
+    if (modeParam === 'register') setMode('register');
+    else if (modeParam === 'reset') setMode('reset');
+    else setMode('login');
+  }, [searchParams]);
+
+  // Derive valid semesters based on selected year
+  const semesterOptions = (year: string) => {
+    const base = (parseInt(year) - 1) * 2;
+    return [
+      { value: String(base + 1), label: `Semester ${base + 1}` },
+      { value: String(base + 2), label: `Semester ${base + 2}` },
+    ];
+  };
+
+  const handleYearChange = (year: string) => {
+    const firstSem = String((parseInt(year) - 1) * 2 + 1);
+    setFormData({ ...formData, courseYear: year, semester: firstSem });
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await login(formData.email, formData.password);
+      if (result) {
+        addNotification('Welcome back!', 'success');
+        navigate('/dashboard');
+      } else {
+        setError('Invalid credentials. Use demo@collabmind.com / demo123');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await loginWithGoogle();
+      if (result) {
+        if (result.isNewUser || !result.city || !result.role) {
+          setShowGoogleSetup(true);
+        } else {
+          addNotification('Welcome back!', 'success');
+          navigate('/dashboard');
+        }
+      } else {
+        setError('Google sign-in failed. Please try again.');
+      }
+    } catch (err) {
+      setError('An error occurred with Google sign-in.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteGoogleSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      await updateUser({
+        role: formData.role,
+        profession: formData.profession,
+        collegeName: formData.collegeName,
+        stream: formData.profession === 'student' ? formData.stream : undefined,
+        courseYear: formData.profession === 'student' ? formData.courseYear : undefined,
+        semester: formData.profession === 'student' ? formData.semester : undefined,
+        orgName: formData.orgName,
+        city: formData.city,
+        state: formData.state
+      });
+      addNotification('Account setup complete!', 'success');
+      navigate('/dashboard');
+    } catch (err) {
+      setError('Failed to save details. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // OTP Logic Handlers
+  const handleSendOtp = () => {
+    if (!formData.email) {
+      setError('Please enter your email address first.');
+      return;
+    }
+    setOtpSent(true);
+    setError('');
+    addNotification('OTP sent to your email!', 'info');
+  };
+
+  const handleVerifyOtp = () => {
+    if (otp === '000000') {
+      setIsEmailVerified(true);
+      setOtpSent(false); // Hide the OTP field once verified
+      setError('');
+      addNotification('Email verified successfully!', 'success');
+    } else {
+      setError('Invalid OTP. Please try again or use 000000 for testing.');
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    // Ensure Email is verified before proceeding
+    if (!isEmailVerified) {
+      setError('Please verify your email address with the OTP before creating an account.');
+      setLoading(false);
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      const result = await register(
+        formData.email,
+        formData.password,
+        formData.displayName,
+        formData.role,
+        {
+          profession: formData.profession,
+          collegeName: formData.collegeName,
+          stream: formData.profession === 'student' ? formData.stream : undefined,
+          courseYear: formData.profession === 'student' ? formData.courseYear : undefined,
+          semester: formData.profession === 'student' ? formData.semester : undefined,
+          orgName: formData.orgName,
+          city: formData.city,
+          state: formData.state
+        }
+      );
+      if (result) {
+        addNotification('Account created successfully!', 'success');
+        navigate('/dashboard');
+      } else {
+        setError('Registration failed. Please try again.');
+      }
+    } catch (err) {
+      setError('An error occurred during registration.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const result = await resetPassword(formData.email);
+      if (result) {
+        setSuccess('Password reset link sent to your email!');
+      } else {
+        setError('Failed to send reset email. Please try again.');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchMode = (newMode: 'login' | 'register' | 'reset') => {
+    setMode(newMode);
+    setError('');
+    setSuccess('');
+    setOtpSent(false);
+    setOtp('');
+    setIsEmailVerified(false);
+  };
+
+  return (
+    <div className="h-screen flex relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 z-0">
+        <div className={`absolute inset-0 ${
+          darkMode 
+            ? 'bg-gradient-to-br from-titanium-950 via-titanium-900 to-titanium-950' 
+            : 'bg-gradient-to-br from-silver-50 via-silver-100 to-silver-200'
+        }`} />
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute -top-1/2 -right-1/2 w-[800px] h-[800px] rounded-full opacity-20"
+            style={{ background: 'radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, transparent 70%)' }}
+          />
+          <motion.div
+            animate={{ scale: [1.2, 1, 1.2], rotate: [360, 180, 0] }}
+            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+            className="absolute -bottom-1/2 -left-1/2 w-[600px] h-[600px] rounded-full opacity-20"
+            style={{ background: 'radial-gradient(circle, rgba(251, 146, 60, 0.3) 0%, transparent 70%)' }}
+          />
+        </div>
+      </div>
+
+      {/* Theme Toggle */}
+      <button
+        onClick={toggleTheme}
+        className="absolute top-6 right-6 z-50 p-3 rounded-xl bg-white border border-gray-200 shadow-sm cursor-hover hover:bg-orange-50 transition-all"
+      >
+        <Zap className={`w-5 h-5 ${darkMode ? 'text-orange-400' : 'text-orange-500'}`} />
+      </button>
+
+      {/* Form Side */}
+      <div className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-8 py-10 overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md my-auto"
+        >
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 mb-8 cursor-hover pt-8">
+            <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.3 }} className="h-12 flex items-center">
+              <img src="/collabmindbg.jpeg" className="h-full object-contain" />
+            </motion.div>
+            <span className="text-3xl font-bold gradient-text">Collab Mind</span>
+          </Link>
+
+          {showGoogleSetup ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Complete Profile</h2>
+                <p className="text-gray-500">Just a few more details to set up your account.</p>
+              </div>
+
+              <form onSubmit={handleCompleteGoogleSetup} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">City</label>
+                    <input type="text" required value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                      placeholder="e.g. Nagpur" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">State</label>
+                    <input type="text" required value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                      placeholder="e.g. Maharashtra" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">I want to join as</label>
+                  <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900">
+                    <option value="solver">Problem Solver (Builder)</option>
+                    <option value="owner">Problem Owner</option>
+                  </select>
+                </div>
+
+                {formData.role === 'solver' && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-2">I am a</label>
+                      <select value={formData.profession} onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900">
+                        <option value="student">Student</option>
+                        <option value="freelancer">Freelancer</option>
+                        <option value="professional">Working Professional</option>
+                      </select>
+                    </div>
+
+                    {formData.profession === 'student' && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-2">College Name</label>
+                          <input type="text" required value={formData.collegeName}
+                            onChange={(e) => setFormData({ ...formData, collegeName: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                            placeholder="Your University / College" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-2">Stream / Course</label>
+                          <input type="text" required value={formData.stream}
+                            onChange={(e) => setFormData({ ...formData, stream: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                            placeholder="e.g. B.Tech, B.Sc, BA" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-2">Year of Study</label>
+                            <select
+                              value={formData.courseYear}
+                              onChange={(e) => handleYearChange(e.target.value)}
+                              className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900"
+                            >
+                              <option value="1">1st Year</option>
+                              <option value="2">2nd Year</option>
+                              <option value="3">3rd Year</option>
+                              <option value="4">4th Year</option>
+                              <option value="5">5th Year</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-2">Semester</label>
+                            <select
+                              value={formData.semester}
+                              onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900"
+                            >
+                              {semesterOptions(formData.courseYear).map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {formData.profession === 'professional' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-2">Organization Name</label>
+                        <input type="text" required value={formData.orgName}
+                          onChange={(e) => setFormData({ ...formData, orgName: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                          placeholder="Where do you work?" />
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+
+                {error && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-red-500" />
+                    <span className="text-sm font-medium text-red-600">{error}</span>
+                  </motion.div>
+                )}
+
+                <motion.button type="submit" disabled={loading}
+                  className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold text-lg rounded-2xl shadow-sm hover:shadow-md transition-all btn-shine cursor-hover disabled:opacity-50 flex items-center justify-center gap-2"
+                  whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }}>
+                  {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Please wait...</> : 'Complete Setup'}
+                </motion.button>
+              </form>
+            </motion.div>
+          ) : (
+            <>
+              <div className="mb-6">
+                <h1 className="text-3xl font-bold mb-2 text-gray-900">
+                  {mode === 'login' && 'Welcome Back'}
+                  {mode === 'register' && 'Create Account'}
+                  {mode === 'reset' && 'Reset Password'}
+                </h1>
+                <p className="text-gray-500">
+                  {mode === 'login' && 'Sign in to continue your journey'}
+                  {mode === 'register' && 'Join the community of problem solvers'}
+                  {mode === 'reset' && 'Recover your account'}
+                </p>
+              </div>
+
+              <form onSubmit={mode === 'login' ? handleLogin : mode === 'register' ? handleRegister : handleReset}>
+                <AnimatePresence mode="wait">
+                  {mode === 'register' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mb-4 space-y-4"
+                    >
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-2">Full Name</label>
+                        <input type="text" required value={formData.displayName}
+                          onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                          placeholder="John Doe" />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-2">City</label>
+                          <input type="text" required value={formData.city}
+                            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                            placeholder="e.g. Nagpur" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-2">State</label>
+                          <input type="text" required value={formData.state}
+                            onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                            placeholder="e.g. Maharashtra" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-2">I want to join as</label>
+                        <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900">
+                          <option value="solver">Problem Solver (Builder)</option>
+                          <option value="owner">Problem Owner</option>
+                        </select>
+                      </div>
+
+                      {formData.role === 'solver' && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-2">I am a</label>
+                            <select value={formData.profession} onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
+                              className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900">
+                              <option value="student">Student</option>
+                              <option value="freelancer">Freelancer</option>
+                              <option value="professional">Working Professional</option>
+                            </select>
+                          </div>
+
+                          {formData.profession === 'student' && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-600 mb-2">College Name</label>
+                                <input type="text" required value={formData.collegeName}
+                                  onChange={(e) => setFormData({ ...formData, collegeName: e.target.value })}
+                                  className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                                  placeholder="Your University / College" />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-600 mb-2">Stream / Course</label>
+                                <input type="text" required value={formData.stream}
+                                  onChange={(e) => setFormData({ ...formData, stream: e.target.value })}
+                                  className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                                  placeholder="e.g. B.Tech, B.Sc, BA" />
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-600 mb-2">Year of Study</label>
+                                  <select
+                                    value={formData.courseYear}
+                                    onChange={(e) => handleYearChange(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900"
+                                  >
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                    <option value="5">5th Year</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-600 mb-2">Semester</label>
+                                  <select
+                                    value={formData.semester}
+                                    onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+                                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900"
+                                  >
+                                    {semesterOptions(formData.courseYear).map(opt => (
+                                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+
+                          {formData.profession === 'professional' && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-600 mb-2">Organization Name</label>
+                              <input type="text" required value={formData.orgName}
+                                onChange={(e) => setFormData({ ...formData, orgName: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                                placeholder="Where do you work?" />
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-600 mb-2">Email Address</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input type="email" required value={formData.email}
+                        onChange={(e) => {
+                          setFormData({ ...formData, email: e.target.value });
+                          if (mode === 'register') {
+                            setIsEmailVerified(false);
+                            setOtpSent(false);
+                            setOtp('');
+                          }
+                        }}
+                        disabled={mode === 'register' && isEmailVerified}
+                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-500"
+                        placeholder="you@example.com" />
+                    </div>
+                    {mode === 'register' && !isEmailVerified && (
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={!formData.email || loading}
+                        className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors whitespace-nowrap disabled:opacity-50 cursor-hover"
+                      >
+                        {otpSent ? 'Resend OTP' : 'Get OTP'}
+                      </button>
+                    )}
+                  </div>
+                  {mode === 'register' && isEmailVerified && (
+                    <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="text-sm font-medium text-green-600 mt-2 flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" /> Email verified successfully
+                    </motion.p>
+                  )}
+                </div>
+
+                {/* OTP Input Field */}
+                <AnimatePresence>
+                  {mode === 'register' && otpSent && !isEmailVerified && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mb-4"
+                    >
+                      <label className="block text-sm font-medium text-gray-600 mb-2">Enter Verification Code</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          maxLength={6}
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                          className="flex-1 px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 tracking-[0.5em] font-mono text-center text-lg placeholder-gray-300"
+                          placeholder="000000"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleVerifyOtp}
+                          disabled={otp.length !== 6}
+                          className="px-6 py-3 bg-gray-900 hover:bg-black text-white font-medium rounded-xl transition-colors disabled:opacity-50 cursor-hover"
+                        >
+                          Verify
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">Please use <span className="font-bold">000000</span> for testing.</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {mode !== 'reset' && (
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-600 mb-2">Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input type={showPassword ? 'text' : 'password'} required value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        className="w-full pl-12 pr-12 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                        placeholder="••••••••" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors cursor-hover">
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {error && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-red-500" />
+                    <span className="text-sm font-medium text-red-600">{error}</span>
+                  </motion.div>
+                )}
+
+                {success && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 p-3 rounded-xl bg-green-50 border border-green-200 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span className="text-sm font-medium text-green-600">{success}</span>
+                  </motion.div>
+                )}
+
+                <motion.button type="submit" disabled={loading}
+                  className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold text-lg rounded-2xl shadow-sm hover:shadow-md transition-all btn-shine cursor-hover disabled:opacity-50 flex items-center justify-center gap-2"
+                  whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }}>
+                  {loading ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Please wait...</>
+                  ) : (
+                    <>
+                      {mode === 'login' && 'Sign In'}
+                      {mode === 'register' && 'Create Account'}
+                      {mode === 'reset' && 'Send Reset Link'}
+                    </>
+                  )}
+                </motion.button>
+
+                {mode === 'login' && (
+                  <button type="button" onClick={() => switchMode('reset')}
+                    className="w-full mt-4 text-sm font-medium text-gray-500 hover:text-orange-500 transition-colors">
+                    Forgot your password?
+                  </button>
+                )}
+              </form>
+
+              <div className="my-4 flex items-center gap-4">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-sm text-gray-500">or</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+
+              <motion.button type="button" onClick={handleGoogleLogin} disabled={loading}
+                className="w-full py-3 px-4 bg-white rounded-2xl font-medium flex items-center justify-center gap-3 cursor-hover disabled:opacity-50 text-gray-900 border border-gray-300 shadow-sm hover:bg-gray-50 transition-all"
+                whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }}>
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continue with Google
+              </motion.button>
+
+              <div className="mt-6 text-center">
+                {mode === 'login' && (
+                  <p className="text-gray-500">Don't have an account?{' '}
+                    <button onClick={() => switchMode('register')} className="text-orange-500 hover:text-orange-600 font-bold cursor-hover transition-colors">Sign up</button>
+                  </p>
+                )}
+                {mode === 'register' && (
+                  <p className="text-gray-500">Already have an account?{' '}
+                    <button onClick={() => switchMode('login')} className="text-orange-500 hover:text-orange-600 font-bold cursor-hover transition-colors">Sign in</button>
+                  </p>
+                )}
+                {mode === 'reset' && (
+                  <button onClick={() => switchMode('login')} className="text-orange-500 hover:text-orange-600 font-medium flex items-center justify-center gap-2 cursor-hover w-full">
+                    <ArrowLeft className="w-4 h-4" /> Back to login
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-6 text-center">
+                <Link to="/" className="text-sm font-medium text-gray-500 hover:text-orange-500 transition-all duration-300 cursor-hover">
+                  ← Back to home
+                </Link>
+              </div>
+            </>
+          )}
+        </motion.div>
+      </div>
+
+      {/* Visual Side */}
+      <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(251, 146, 60, 0.05) 100%)' }} />
+        <div className="relative z-10 text-center p-12">
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3, type: "spring" }}
+            className="h-32 mx-auto mb-8 flex items-center justify-center">
+            <img src="/collabmindex.png" className="h-full object-contain drop-shadow-2xl" />
+          </motion.div>
+          <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+            className="text-3xl font-bold text-gray-900 mb-4">
+            Connect. Collaborate. Create.
+          </motion.h2>
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
+            className="text-gray-600 max-w-md">
+            Join thousands of problem owners and talented builders creating impact together.
+          </motion.p>
+        </div>
+      </div>
+    </div>
+  );
+}
