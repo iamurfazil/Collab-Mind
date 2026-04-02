@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useStore } from '../../../store';
+import { useStore } from '../../store';
 import { 
   User, Lock, Bell, Trash2, Save, Camera,
   Mail, AlertTriangle, Linkedin, GraduationCap

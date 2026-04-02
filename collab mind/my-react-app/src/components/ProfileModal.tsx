@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStore } from '../../../store';
+import { useStore } from '../store';
 import { 
   X, MessageSquare, ShieldCheck, Calendar, BookOpen, GraduationCap,
   Building2, Laptop

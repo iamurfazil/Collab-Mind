@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Edit2, ArrowRight, Award, Clock } from 'lucide-react';
-import { useStore } from '../../../store';
+import { useStore } from '../../store';
 
 interface Project {
   id: string;

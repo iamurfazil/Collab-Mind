@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useStore } from '../../../store';
+import { useStore } from '../../store';
 import { 
   Award, Download, Share2, ExternalLink, Clock, CheckCircle, 
   Star, Trophy, BookOpen, Video, FileText, Lock, Filter

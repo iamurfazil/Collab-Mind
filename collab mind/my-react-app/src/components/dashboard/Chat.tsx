@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStore } from '../../../store';
+import { useStore } from '../../store';
 import { 
   MessageSquare, Send, Paperclip, X, File, Image, FileText,
   Download, User, Search, Plus

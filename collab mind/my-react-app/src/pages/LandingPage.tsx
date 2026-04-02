@@ -129,7 +129,7 @@ useEffect(() => {
     }
   }
 }, [location]);
-  const { darkMode, toggleTheme, feedbackList, addFeedback } = useStore();
+  const { feedbackList, addFeedback } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [feedbackForm, setFeedbackForm] = useState({ name: '', email: '', category: 'general', message: '', contactPermission: false });
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -186,15 +186,6 @@ useEffect(() => {
             </nav>
             
             <div className="flex items-center gap-4">
-              <motion.button
-                onClick={toggleTheme}
-                className="p-2 rounded-xl glass cursor-hover hover:bg-orange-500/20 transition-colors"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {darkMode ? <Zap className="w-5 h-5 text-orange-400" /> : <Zap className="w-5 h-5 text-orange-500" />}
-              </motion.button>
-              
               <Link to="/auth">
                 <motion.button
                   className="hidden md:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-semibold rounded-xl border border-orange-300 hover:border-orange-400 transition-all btn-shine cursor-hover"

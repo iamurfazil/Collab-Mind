@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStore } from '../../../store';
+import { useStore } from '../store';
 import { 
-  Mail, Lock, Eye, EyeOff, Sparkles, ArrowLeft, CheckCircle,
-  AlertCircle, Loader2, Zap
+  Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle,
+  AlertCircle, Loader2
 } from 'lucide-react';
+// Properly importing the 3D Canvas
+import Canvas3D from '../components/Canvas3D';
 
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login, loginWithGoogle, register, resetPassword, darkMode, toggleTheme, addNotification, updateUser } = useStore();
+  const { login, loginWithGoogle, register, resetPassword, darkMode, addNotification, updateUser } = useStore();
   
   const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
   const [loading, setLoading] = useState(false);
@@ -230,52 +232,22 @@ export default function AuthPage() {
 
   return (
     <div className="h-screen flex relative overflow-hidden">
-      {/* Animated Background */}
+      {/* 3D Background - Replaced static background with your Canvas3D */}
       <div className="absolute inset-0 z-0">
+        <Canvas3D />
+        {/* Subtle overlay to ensure form readability */}
         <div className={`absolute inset-0 ${
-          darkMode 
-            ? 'bg-gradient-to-br from-titanium-950 via-titanium-900 to-titanium-950' 
-            : 'bg-gradient-to-br from-silver-50 via-silver-100 to-silver-200'
-        }`} />
-        <div className="absolute inset-0 overflow-hidden">
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-1/2 -right-1/2 w-[800px] h-[800px] rounded-full opacity-20"
-            style={{ background: 'radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, transparent 70%)' }}
-          />
-          <motion.div
-            animate={{ scale: [1.2, 1, 1.2], rotate: [360, 180, 0] }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-1/2 -left-1/2 w-[600px] h-[600px] rounded-full opacity-20"
-            style={{ background: 'radial-gradient(circle, rgba(251, 146, 60, 0.3) 0%, transparent 70%)' }}
-          />
-        </div>
+          darkMode ? 'bg-titanium-950/40' : 'bg-white/10'
+        } backdrop-blur-[2px]`} />
       </div>
-
-      {/* Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        className="absolute top-6 right-6 z-50 p-3 rounded-xl bg-white border border-gray-200 shadow-sm cursor-hover hover:bg-orange-50 transition-all"
-      >
-        <Zap className={`w-5 h-5 ${darkMode ? 'text-orange-400' : 'text-orange-500'}`} />
-      </button>
 
       {/* Form Side */}
       <div className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-8 py-10 overflow-y-auto">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md my-auto"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="w-full max-w-md my-auto glass p-8 rounded-3xl border border-white/20 shadow-2xl"
         >
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 mb-8 cursor-hover pt-8">
-            <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.3 }} className="h-12 flex items-center">
-              <img src="/collabmindbg.jpeg" className="h-full object-contain" />
-            </motion.div>
-            <span className="text-3xl font-bold gradient-text">Collab Mind</span>
-          </Link>
-
           {showGoogleSetup ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <div className="mb-6">
@@ -698,24 +670,39 @@ export default function AuthPage() {
         </motion.div>
       </div>
 
-      {/* Visual Side */}
+      {/* Visual Side - Upgraded with 3D Integration */}
       <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
-          className="absolute inset-0"
-          style={{ background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(251, 146, 60, 0.05) 100%)' }} />
+        {/* Background depth for visual side */}
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent z-0" />
+        
         <div className="relative z-10 text-center p-12">
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3, type: "spring" }}
-            className="h-32 mx-auto mb-8 flex items-center justify-center">
-            <img src="/collabmindex.png" className="h-full object-contain drop-shadow-2xl" />
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }} 
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="w-[450px] h-[450px] mx-auto mb-8 relative flex items-center justify-center"
+          >
+            {/* The actual floating branding image */}
+            <motion.img 
+              animate={{ y: [0, -15, 0] }}
+              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+              src="/collabmindex.png" 
+              className="h-full object-contain drop-shadow-[0_35px_35px_rgba(249,115,22,0.3)] z-20" 
+            />
           </motion.div>
-          <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-            className="text-3xl font-bold text-gray-900 mb-4">
-            Connect. Collaborate. Create.
-          </motion.h2>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
-            className="text-gray-600 max-w-md">
-            Join thousands of problem owners and talented builders creating impact together.
-          </motion.p>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: 0.5 }}
+          >
+            <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">
+              Build the <span className="gradient-text">Future</span>
+            </h2>
+            <p className="text-gray-600 max-w-md font-medium">
+              Join thousands of problem owners and talented builders creating impact together.
+            </p>
+          </motion.div>
         </div>
       </div>
     </div>

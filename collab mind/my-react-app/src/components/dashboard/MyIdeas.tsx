@@ -1,83 +1,109 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStore } from '../../../store';
-import type { CMVCReport } from '../../store'; // <-- FIX: Added 'type' keyword
+import { useStore } from '../../store';
+import type { CMVCReport } from '../../store'; 
 import { 
   Lightbulb, Plus, Edit2, Trash2, Eye, EyeOff, 
-  CheckCircle, Clock, Users, X, Save
+  CheckCircle, Clock, Users, X, Save, Upload, FileText,
+  FileEdit, ShieldCheck
 } from 'lucide-react';
 import CMVCReportModal from './CMVCReportModal';
 
 export default function MyIdeas() {
   const [showOwnerDisclaimer, setShowOwnerDisclaimer] = useState(false);
   const [showCMVCReport, setShowCMVCReport] = useState(false);
-  const [ideaToPublish, setIdeaToPublish] = useState<typeof ideas[0] | null>(null);
+  const [ideaToPublish, setIdeaToPublish] = useState<any | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // NEW STATE: Store the generated report to save it later
+  const [optForPatent, setOptForPatent] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<CMVCReport | null>(null); 
   
   const { user, ideas, addIdea, updateIdea, deleteIdea, addNotification } = useStore();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'open' | 'in_review' | 'completed'>('all');
+  
+  // Replaced 'open' with 'in_review'
+  const [filter, setFilter] = useState<'all' | 'draft' | 'patent' | 'in_review' | 'in_progress' | 'completed'>('all');
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    expectations: '',
-    isPublished: true,
+    researchFiles: [] as File[],
+    isPublished: true, 
   });
 
   if (!user) return null;
 
   const userIdeas = ideas.filter(i => i.userId === user.id);
-  const filteredIdeas = filter === 'all' ? userIdeas : userIdeas.filter(i => i.status === filter);
+  
+  // Safely catch legacy 'open' statuses under the 'in_review' filter
+  const filteredIdeas = filter === 'all' 
+    ? userIdeas 
+    : userIdeas.filter(i => {
+        if (filter === 'in_review') return i.status === 'in_review' || i.status === 'open';
+        return i.status === filter;
+      });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFormData({ ...formData, researchFiles: Array.from(e.target.files) });
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent, isDraft: boolean = false) => {
     e.preventDefault();
     
-    if (formData.isPublished) {
-      setIdeaToPublish({
-        ...(editingId ? { id: editingId } : {}),
-        userId: user.id,
-        userName: user.displayName,
-        ...formData,
-        status: 'open',
-      } as any);
-
-      setShowForm(false);
-      setShowCMVCReport(true);
-    } else {
+    if (isDraft) {
       if (editingId) {
         updateIdea(editingId, {
-          ...formData,
+          title: formData.title,
+          description: formData.description,
+          isPublished: false,
+          status: 'draft',
         });
-        addNotification('Idea updated successfully!', 'success');
+        addNotification('Draft updated successfully!', 'success');
       } else {
         addIdea({
           userId: user.id,
           userName: user.displayName,
-          ...formData,
-          status: 'open',
-        });
-        addNotification('Idea created successfully!', 'success');
+          title: formData.title,
+          description: formData.description,
+          status: 'draft',
+          isPublished: false,
+          collaborators: [],
+          skills: [] 
+        } as any);
+        addNotification('Saved as draft!', 'success');
       }
       resetForm();
+    } else {
+      setIdeaToPublish({
+        ...(editingId ? { id: editingId } : {}),
+        userId: user.id,
+        userName: user.displayName,
+        title: formData.title,
+        description: formData.description,
+        researchFiles: formData.researchFiles,
+      } as any);
+
+      setShowForm(false);
+      setShowCMVCReport(true);
     }
   };
 
   const resetForm = () => {
     setShowForm(false);
     setEditingId(null);
-    setFormData({ title: '', description: '', expectations: '', isPublished: true });
+    setFormData({ title: '', description: '', researchFiles: [], isPublished: true });
     setGeneratedReport(null);
+    setOptForPatent(false);
   };
 
-  const handleEdit = (idea: typeof ideas[0]) => {
+  const handleEdit = (idea: any) => {
     setFormData({
       title: idea.title,
       description: idea.description,
-      expectations: idea.expectations,
+      researchFiles: [], 
       isPublished: idea.isPublished,
     });
     setEditingId(idea.id);
@@ -91,21 +117,21 @@ export default function MyIdeas() {
     }
   };
 
-  const togglePublish = (idea: typeof ideas[0]) => {
+  const togglePublish = (idea: any) => {
     if (!idea.isPublished) {
       setIdeaToPublish(idea);
       setShowCMVCReport(true);
     } else {
-      updateIdea(idea.id, { isPublished: false });
-      addNotification('Idea unpublished', 'info');
+      updateIdea(idea.id, { isPublished: false, status: 'draft' });
+      addNotification('Idea unpublished and saved as draft', 'info');
     }
   };
 
-  // UPDATE: Accept the report from the modal
   const handleCMVCProceed = (report: CMVCReport) => {
     setGeneratedReport(report);
     setShowCMVCReport(false);
     setShowOwnerDisclaimer(true);
+    setOptForPatent(false);
   };
 
   const handleCMVCEdit = () => {
@@ -113,15 +139,21 @@ export default function MyIdeas() {
     setShowForm(true);
   };
 
-  const statusColors = {
-    open: 'bg-green-500/20 text-green-500',
-    in_review: 'bg-yellow-500/20 text-yellow-500',
+  const statusColors: Record<string, string> = {
+    draft: 'bg-gray-500/20 text-gray-600',
+    patent: 'bg-purple-500/20 text-purple-600',
+    in_review: 'bg-green-500/20 text-green-500',
+    open: 'bg-green-500/20 text-green-500', // Map legacy 'open' to match 'in_review' colors
+    in_progress: 'bg-yellow-500/20 text-yellow-600',
     completed: 'bg-blue-500/20 text-blue-500',
   };
 
-  const statusLabels = {
-    open: 'Open',
+  const statusLabels: Record<string, string> = {
+    draft: 'Draft',
+    patent: 'Patent',
     in_review: 'In Review',
+    open: 'In Review', // Map legacy 'open' strings to 'In Review'
+    in_progress: 'In Progress',
     completed: 'Completed',
   };
 
@@ -145,7 +177,7 @@ export default function MyIdeas() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        {(['all', 'open', 'in_review', 'completed'] as const).map((status) => (
+        {(['all', 'draft', 'patent', 'in_review', 'in_progress', 'completed'] as const).map((status) => (
           <button
             key={status}
             onClick={() => setFilter(status)}
@@ -186,7 +218,7 @@ export default function MyIdeas() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-2">
                     Title *
@@ -215,44 +247,77 @@ export default function MyIdeas() {
                   />
                 </div>
 
+                {/* Optional Research Files Upload */}
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Expectations from Collaborators *
+                    Research Files (Optional)
                   </label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={formData.expectations}
-                    onChange={(e) => setFormData({ ...formData, expectations: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all resize-none text-gray-900 placeholder-gray-400"
-                    placeholder="What skills and experience are you looking for?"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-3 pt-2">
-                    <input
-                      type="checkbox"
-                      id="isPublished"
-                      checked={formData.isPublished}
-                      onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
-                      className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full px-4 py-8 border-2 border-dashed border-gray-300 rounded-2xl hover:border-orange-500 hover:bg-orange-50/30 transition-all cursor-pointer flex flex-col items-center justify-center gap-3 group"
+                  >
+                    <input 
+                      type="file" 
+                      multiple 
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      className="hidden" 
                     />
-                    <label htmlFor="isPublished" className="text-sm text-gray-600">
-                      Publish immediately (visible to builders)
-                    </label>
+                    <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Upload className="w-6 h-6 text-orange-500" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-semibold text-gray-900">Click to upload research documents</p>
+                      <p className="text-xs text-gray-500 mt-1">PDF, DOCX, or PPTX up to 10MB</p>
+                    </div>
                   </div>
+                  
+                  {/* File List Preview */}
+                  {formData.researchFiles.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {formData.researchFiles.map((file, i) => (
+                        <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100">
+                          <div className="flex items-center gap-2 text-sm text-gray-700">
+                            <FileText className="w-4 h-4 text-orange-500" />
+                            <span className="truncate max-w-[200px]">{file.name}</span>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => setFormData({
+                              ...formData, 
+                              researchFiles: formData.researchFiles.filter((_, idx) => idx !== i)
+                            })}
+                            className="text-gray-400 hover:text-red-500"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   <motion.button
                     type="submit"
                     className="flex-1 py-4 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold rounded-xl btn-shine cursor-hover flex items-center justify-center gap-2"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <Save className="w-5 h-5" /> {editingId ? 'Update Idea' : 'Create Idea'}
+                    <Save className="w-5 h-5" /> {editingId && ideaToPublish?.status !== 'draft' ? 'Update Idea' : 'Create & Validate'}
                   </motion.button>
+                  
+                  {/* DRAFT BUTTON */}
+                  <motion.button
+                    type="button"
+                    onClick={(e) => handleSubmit(e, true)}
+                    className="flex-1 py-4 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all cursor-hover flex items-center justify-center gap-2 shadow-sm"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <FileEdit className="w-5 h-5" /> Save as Draft
+                  </motion.button>
+
                   <button
                     type="button"
                     onClick={resetForm}
@@ -273,7 +338,7 @@ export default function MyIdeas() {
           <CMVCReportModal
             ideaTitle={ideaToPublish.title}
             ideaDescription={ideaToPublish.description}
-            onProceed={handleCMVCProceed} // Now receives the report
+            onProceed={handleCMVCProceed} 
             onEdit={handleCMVCEdit}
           />
         )}
@@ -306,8 +371,8 @@ export default function MyIdeas() {
               <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[idea.status as keyof typeof statusColors] || statusColors.open}`}>
-                      {statusLabels[idea.status as keyof typeof statusLabels] || 'Open'}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[idea.status] || statusColors.in_review}`}>
+                      {statusLabels[idea.status] || idea.status}
                     </span>
                     {idea.isPublished ? (
                       <span className="flex items-center gap-1 text-xs text-green-500">
@@ -321,30 +386,36 @@ export default function MyIdeas() {
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{idea.title}</h3>
                   <p className="text-gray-500 mb-3 line-clamp-2">{idea.description}</p>
-                  <p className="text-sm text-orange-500 mb-3">Expectations: {idea.expectations}</p>
+                  
                   <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                     <span className="flex items-center gap-1">
-                      <Users className="w-4 h-4" /> {idea.collaborators.length} collaborators
+                      <Users className="w-4 h-4" /> {idea.collaborators?.length || 0} collaborators
                     </span>
                     <span className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" /> Created {new Date(idea.createdAt).toLocaleDateString()}
+                      <Clock className="w-4 h-4" /> Created {new Date(idea.createdAt || Date.now()).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <motion.button
-                    onClick={() => handleEdit(idea)}
-                    className="p-3 rounded-xl bg-gray-50 border border-gray-200 hover:bg-orange-50 text-gray-600 hover:text-orange-500 cursor-hover"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Edit2 className="w-5 h-5" />
-                  </motion.button>
+                  {/* EDIT BUTTON: Only show if status is 'draft' */}
+                  {idea.status === 'draft' && (
+                    <motion.button
+                      onClick={() => handleEdit(idea)}
+                      className="p-3 rounded-xl bg-gray-50 border border-gray-200 hover:bg-orange-50 text-gray-600 hover:text-orange-500 cursor-hover"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      title="Edit Draft"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </motion.button>
+                  )}
+                  
                   <motion.button
                     onClick={() => togglePublish(idea)}
                     className="p-3 rounded-xl bg-gray-50 border border-gray-200 hover:bg-orange-50 text-gray-600 hover:text-orange-500 cursor-hover"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
+                    title={idea.isPublished ? "Unpublish and save as draft" : "Publish to marketplace"}
                   >
                     {idea.isPublished ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </motion.button>
@@ -353,6 +424,7 @@ export default function MyIdeas() {
                     className="p-3 rounded-xl bg-gray-50 border border-gray-200 hover:bg-red-50 text-red-500 cursor-hover"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
+                    title="Delete Idea"
                   >
                     <Trash2 className="w-5 h-5" />
                   </motion.button>
@@ -364,10 +436,10 @@ export default function MyIdeas() {
       </div>
 
       {showOwnerDisclaimer && ideaToPublish && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white shadow-2xl border border-gray-200 rounded-2xl p-8 max-w-lg">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white shadow-2xl border border-gray-200 rounded-2xl p-8 max-w-lg w-full">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Owner Responsibility Notice
+              Publishing Options
             </h2>
             <p className="text-gray-600 text-sm mb-6 leading-relaxed">
               By publishing this project you acknowledge that builders working on
@@ -376,39 +448,78 @@ export default function MyIdeas() {
               implementation, the platform will not be responsible for those
               outcomes.
             </p>
+
+            {/* Patent Option Toggle */}
+            <div className="mb-8 p-4 bg-purple-50 rounded-xl border border-purple-100 flex items-start gap-4">
+              <div className="mt-1 flex-shrink-0">
+                <ShieldCheck className="w-6 h-6 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="font-semibold text-purple-900">Protect my Idea (Patent)</h3>
+                  <button
+                    onClick={() => setOptForPatent(!optForPatent)}
+                    className={`w-12 h-6 rounded-full transition-colors cursor-hover border relative flex items-center px-1 ${
+                      optForPatent ? 'bg-purple-600 border-purple-600' : 'bg-gray-300 border-gray-300'
+                    }`}
+                  >
+                    <motion.div
+                      className="w-4 h-4 rounded-full bg-white shadow-sm"
+                      animate={{ x: optForPatent ? 24 : 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    />
+                  </button>
+                </div>
+                <p className="text-xs text-purple-700 leading-relaxed">
+                  Collab Mind will process your idea through our legal backend to begin the patent filing process before making it public.
+                </p>
+              </div>
+            </div>
+
             <div className="flex gap-4">
               <button
                 onClick={() => setShowOwnerDisclaimer(false)}
-                className="flex-1 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl"
+                className="flex-1 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={() => {
+                  const finalStatus = optForPatent ? 'patent' : 'in_review';
+                  
                   if ('id' in ideaToPublish && ideaToPublish.id) {
                     updateIdea(ideaToPublish.id, { 
                       title: ideaToPublish.title,
                       description: ideaToPublish.description,
-                      expectations: ideaToPublish.expectations,
                       isPublished: true,
-                      cmvcReport: generatedReport || undefined // Save the report!
+                      status: finalStatus,
+                      cmvcReport: generatedReport || undefined 
                     });
                   } else {
                     addIdea({
                       ...ideaToPublish,
                       isPublished: true,
-                      cmvcReport: generatedReport || undefined // Save the report!
+                      status: finalStatus,
+                      cmvcReport: generatedReport || undefined 
                     });
                   }
+                  
+                  if (optForPatent) {
+                    addNotification('Idea published and sent for patenting securely!', 'success');
+                  } else {
+                    addNotification('Idea published successfully', 'success');
+                  }
+
                   setIdeaToPublish(null);
                   setShowOwnerDisclaimer(false);
                   setGeneratedReport(null);
-                  addNotification('Idea published successfully', 'success');
                   resetForm();
                 }}
-                className="flex-1 py-3 bg-orange-500 text-white rounded-xl"
+                className={`flex-1 py-3 text-white rounded-xl font-medium transition-colors ${
+                  optForPatent ? 'bg-purple-600 hover:bg-purple-700' : 'bg-orange-500 hover:bg-orange-600'
+                }`}
               >
-                Accept & Publish
+                {optForPatent ? 'Patent & Publish' : 'Accept & Publish'}
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStore } from '../../../store';
+import { useStore } from '../../store';
 import { 
   ArrowLeft, MessageSquare, CheckSquare, Paperclip, 
   Users, Send, FileText, Download, Plus, MoreVertical,

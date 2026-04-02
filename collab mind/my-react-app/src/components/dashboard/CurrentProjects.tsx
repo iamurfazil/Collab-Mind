@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStore } from '../../../store';
+import { useStore } from '../../store';
 import { useNavigate } from 'react-router-dom';
-import ProjectCard from '../../problems/components/ProjectCard';
-import UpdateStatusModal from '../../dashboard/components/UpdateStatusModal';
+import ProjectCard from './ProjectCard';
+import UpdateStatusModal from './UpdateStatusModal';
 import { FolderKanban, CheckCircle, Clock, Zap, Star, X, Award } from 'lucide-react';
 
 interface Project {

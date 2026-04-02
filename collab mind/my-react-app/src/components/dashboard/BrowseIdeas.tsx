@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStore } from '../../../store';
+import { useStore } from '../../store';
 import { 
   Search, Filter, Users, Calendar, Clock, Send, X,
   Lightbulb, CheckCircle, FileText, Sparkles, Check
