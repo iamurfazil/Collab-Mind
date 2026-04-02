@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useStore } from './store';
 import LandingPage from './pages/LandingPage';
-import AuthPage from './features/auth/components/AuthPage';
+import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import CustomCursor from './components/CustomCursor';
 import Toast from './components/Toast';
