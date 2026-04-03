@@ -2,6 +2,13 @@ import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, MeshDistortMaterial, Sphere, Torus, Icosahedron } from '@react-three/drei';
 import * as THREE from 'three';
+import type { ThreeElements } from '@react-three/fiber';
+
+declare global {
+	namespace JSX {
+		interface IntrinsicElements extends ThreeElements {}
+	}
+}
 
 function AnimatedSphere({ position, color, scale = 1, speed = 2 }: { position: [number, number, number]; color: string; scale?: number; speed?: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
