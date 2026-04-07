@@ -1,12 +1,19 @@
-const admin = require("firebase-admin");
-const serviceAccount = require("../../config/serviceAccountKey.json");
+const admin = require('firebase-admin');
+const fs = require('fs');
+const path = require('path');
+
+const serviceAccountPath = path.resolve(__dirname, '../../config/serviceAccountKey.json');
+
+const credential = fs.existsSync(serviceAccountPath)
+  ? admin.credential.cert(require(serviceAccountPath))
+  : admin.credential.applicationDefault();
 
 let db;
 
 function initializeFirebase() {
   if (!admin.apps.length) {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+      credential,
     });
     db = admin.firestore();
     console.log("[INFO] Firebase initialized");
@@ -15,7 +22,7 @@ function initializeFirebase() {
 
 function getDB() {
   if (!db) {
-    throw new Error("Firestore not initialized");
+    initializeFirebase();
   }
   return db;
 }

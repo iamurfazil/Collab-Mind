@@ -132,14 +132,44 @@ export default function AuthPage() {
   };
 
   // OTP Logic Handlers
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     if (!formData.email) {
       setError('Please enter your email address first.');
       return;
     }
-    setOtpSent(true);
+
+    setLoading(true);
     setError('');
-    addNotification('OTP sent to your email!', 'info');
+
+    try {
+      const response = await fetch('https://collabmind-backend-995242116294.asia-south1.run.app/api/auth/send-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: formData.email })
+      });
+
+      if (!response.ok) {
+        let message = 'Failed to send OTP. Please try again.';
+        try {
+          const data = await response.json();
+          if (data && typeof data.message === 'string') {
+            message = data.message;
+          }
+        } catch {
+          // Ignore JSON parse errors and use the default message.
+        }
+        throw new Error(message);
+      }
+
+      setOtpSent(true);
+      addNotification('OTP sent to your email!', 'info');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOtp = () => {

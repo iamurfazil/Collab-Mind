@@ -19,13 +19,8 @@ app.get('/api/health', (req, res) => {
   res.send('Backend running');
 });
 
-// ⚠️ Temporarily disable routes (they may crash)
-try {
-  const apiRoutes = require('./routes');
-  app.use('/api', apiRoutes);
-} catch (err) {
-  console.log("Routes not loaded:", err.message);
-}
+const routes = require('./routes');
+app.use('/api', routes);
 
 // ⚠️ Disable error middleware temporarily
 // const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');

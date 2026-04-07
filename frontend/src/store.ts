@@ -9,6 +9,14 @@ interface User {
   skills: string[];
   avatar?: string;
   role: 'owner' | 'builder';
+  profession?: 'student' | 'freelancer' | 'professional';
+  collegeName?: string;
+  stream?: string;
+  courseYear?: string;
+  semester?: string;
+  orgName?: string;
+  city?: string;
+  state?: string;
   isVerified: boolean;
   membership: 'free' | 'premium';
   joinDate: string;
@@ -105,7 +113,7 @@ interface AppState {
   login: (email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
   logout: () => void;
-  register: (email: string, password: string, displayName: string) => Promise<boolean>;
+  register: (email: string, password: string, displayName: string, role: 'owner' | 'builder') => Promise<boolean>;
   resetPassword: (email: string) => Promise<boolean>;
   updateUser: (updates: Partial<User>) => void;
   deleteAccount: () => void;

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Instagram, Linkedin } from 'lucide-react';
+import { Instagram, Linkedin } from 'lucide-react';
 import { Link } from "react-router-dom";
 
 export default function Footer() {
@@ -29,7 +29,10 @@ export default function Footer() {
             {/* Social Icons */}
             <div className="flex items-center gap-3">
               <motion.a
-                href="#"
+                href="https://www.instagram.com/collabmind?igsh=OHVlNDllYXRsajlw"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Collab Mind on Instagram"
                 className="w-10 h-10 rounded-xl border border-orange-200 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-400 hover:shadow-lg hover:shadow-orange-500/20 transition-all cursor-hover"
                 whileHover={{ scale: 1.1, y: -2 }}
                 whileTap={{ scale: 0.95 }}
@@ -37,7 +40,10 @@ export default function Footer() {
                 <Instagram className="w-5 h-5" />
               </motion.a>
               <motion.a
-                href="#"
+                href="https://www.linkedin.com/company/collab-mind"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Collab Mind on LinkedIn"
                 className="w-10 h-10 rounded-xl border border-orange-200 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-400 hover:shadow-lg hover:shadow-orange-500/20 transition-all cursor-hover"
                 whileHover={{ scale: 1.1, y: -2 }}
                 whileTap={{ scale: 0.95 }}

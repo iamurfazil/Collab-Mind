@@ -1,6 +1,5 @@
 const express = require('express');
 
-const authRoutes = require('./auth/route');
 const problemRoutes = require('./problems/route');
 const projectRoutes = require('./projects/route');
 const chatRoutes = require('./chat/route');
@@ -8,7 +7,6 @@ const cmvcRoutes = require('./cmvc/route');
 
 const router = express.Router();
 
-router.use('/auth', authRoutes);
 router.use('/problems', problemRoutes);
 router.use('/projects', projectRoutes);
 router.use('/chat', chatRoutes);

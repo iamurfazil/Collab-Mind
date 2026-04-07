@@ -9,6 +9,24 @@ import {
 // Properly importing the 3D Canvas
 import Canvas3D from '../components/Canvas3D';
 
+type Role = 'owner' | 'builder';
+type Profession = 'student' | 'freelancer' | 'professional';
+
+type AuthFormData = {
+  email: string;
+  password: string;
+  displayName: string;
+  role: Role;
+  profession: Profession;
+  collegeName: string;
+  stream: string;
+  courseYear: string;
+  semester: string;
+  orgName: string;
+  city: string;
+  state: string;
+};
+
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -26,11 +44,11 @@ export default function AuthPage() {
   const [otp, setOtp] = useState('');
   const [isEmailVerified, setIsEmailVerified] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AuthFormData>({
     email: '',
     password: '',
     displayName: '',
-    role: 'solver',
+    role: 'builder',
     profession: 'student',
     collegeName: '',
     stream: '',          // User can type their course (e.g. B.Tech, B.Sc, BA)
@@ -89,11 +107,14 @@ export default function AuthPage() {
     try {
       const result = await loginWithGoogle();
       if (result) {
-        if (result.isNewUser || !result.city || !result.role) {
+        const currentUser = useStore.getState().user;
+        if (currentUser && (!currentUser.city || !currentUser.role)) {
           setShowGoogleSetup(true);
-        } else {
+        } else if (currentUser) {
           addNotification('Welcome back!', 'success');
           navigate('/dashboard');
+        } else {
+          setError('Google sign-in failed. Please try again.');
         }
       } else {
         setError('Google sign-in failed. Please try again.');
@@ -118,7 +139,7 @@ export default function AuthPage() {
         stream: formData.profession === 'student' ? formData.stream : undefined,
         courseYear: formData.profession === 'student' ? formData.courseYear : undefined,
         semester: formData.profession === 'student' ? formData.semester : undefined,
-        orgName: formData.orgName,
+        orgName: formData.profession === 'professional' ? formData.orgName : undefined,
         city: formData.city,
         state: formData.state
       });
@@ -132,14 +153,47 @@ export default function AuthPage() {
   };
 
   // OTP Logic Handlers
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     if (!formData.email) {
       setError('Please enter your email address first.');
       return;
     }
-    setOtpSent(true);
+
+    setLoading(true);
     setError('');
-    addNotification('OTP sent to your email!', 'info');
+
+    const API_BASE_URL = "https://collabmind-backend-995242116294.asia-south1.run.app";
+    const OTP_ENDPOINT = new URL("/api/auth/send-otp", API_BASE_URL).toString();
+
+    try {
+      const res = await fetch(OTP_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      if (!res.ok) {
+        let message = 'Failed to send OTP. Please try again.';
+        try {
+          const data = await res.json();
+          if (data && typeof data.message === 'string') {
+            message = data.message;
+          }
+        } catch {
+          // Ignore JSON parse errors and use the default message.
+        }
+        throw new Error(message);
+      }
+
+      setOtpSent(true);
+      addNotification('OTP sent to your email!', 'info');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOtp = () => {
@@ -176,19 +230,20 @@ export default function AuthPage() {
         formData.email,
         formData.password,
         formData.displayName,
-        formData.role,
-        {
+        formData.role
+      );
+      if (result) {
+        updateUser({
+          role: formData.role,
           profession: formData.profession,
           collegeName: formData.collegeName,
           stream: formData.profession === 'student' ? formData.stream : undefined,
           courseYear: formData.profession === 'student' ? formData.courseYear : undefined,
           semester: formData.profession === 'student' ? formData.semester : undefined,
-          orgName: formData.orgName,
+          orgName: formData.profession === 'professional' ? formData.orgName : undefined,
           city: formData.city,
           state: formData.state
-        }
-      );
-      if (result) {
+        });
         addNotification('Account created successfully!', 'success');
         navigate('/dashboard');
       } else {
@@ -275,18 +330,18 @@ export default function AuthPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-2">I want to join as</label>
-                  <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
                     className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900">
-                    <option value="solver">Problem Solver (Builder)</option>
+                    <option value="builder">Problem Solver (Builder)</option>
                     <option value="owner">Problem Owner</option>
                   </select>
                 </div>
 
-                {formData.role === 'solver' && (
+                {formData.role === 'builder' && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-2">I am a</label>
-                      <select value={formData.profession} onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
+                      <select value={formData.profession} onChange={(e) => setFormData({ ...formData, profession: e.target.value as Profession })}
                         className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900">
                         <option value="student">Student</option>
                         <option value="freelancer">Freelancer</option>
@@ -419,18 +474,18 @@ export default function AuthPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-600 mb-2">I want to join as</label>
-                        <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
                           className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900">
-                          <option value="solver">Problem Solver (Builder)</option>
+                          <option value="builder">Problem Solver (Builder)</option>
                           <option value="owner">Problem Owner</option>
                         </select>
                       </div>
 
-                      {formData.role === 'solver' && (
+                      {formData.role === 'builder' && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-600 mb-2">I am a</label>
-                            <select value={formData.profession} onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
+                            <select value={formData.profession} onChange={(e) => setFormData({ ...formData, profession: e.target.value as Profession })}
                               className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 outline-none text-gray-900">
                               <option value="student">Student</option>
                               <option value="freelancer">Freelancer</option>

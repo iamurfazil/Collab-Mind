@@ -16,7 +16,7 @@ import ProjectWorkspace from '../components/dashboard/ProjectWorkspace';
 import { 
   LayoutDashboard, Lightbulb, Users, MessageSquare, FileText, 
   Award, Settings as SettingsIcon, Menu, X, LogOut, ChevronDown,
-  Bell, Sparkles, Zap, User
+  Zap, User
 } from 'lucide-react';
 
 const navItems = [
@@ -34,7 +34,7 @@ const navItems = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, showProfileModal, setShowProfileModal, setProfileToView } = useStore();
+  const { user, logout, showProfileModal } = useStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 

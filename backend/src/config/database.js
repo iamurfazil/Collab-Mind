@@ -1,18 +1,7 @@
-const { env } = require('./env');
-const { logger } = require('../utils/logger');
+const { Firestore } = require('@google-cloud/firestore');
 
-async function connectDatabase() {
-  if (env.DB_PROVIDER === 'firestore') {
-    logger.info('Using Firestore as database provider');
-    return;
-  }
+const db = new Firestore({
+  projectId: process.env.GCP_PROJECT_ID,
+});
 
-  if (env.DB_PROVIDER === 'mongo') {
-    logger.info('Mongo provider selected. Add Mongo connection initialization here.');
-    return;
-  }
-
-  logger.warn(`Unknown DB_PROVIDER value: ${env.DB_PROVIDER}`);
-}
-
-module.exports = { connectDatabase };
+module.exports = db;

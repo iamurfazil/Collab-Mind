@@ -1,11 +1,19 @@
-const { getDB } = require("../../config/firebase");
+const { getDB } = require('../../config/firebase');
 
-const db = getDB();
+const createProblem = async (payload) => {
+  const db = getDB();
+  const docRef = await db.collection('problems').add(payload);
+  return {
+    id: docRef.id,
+    ...payload
+  };
+};
 
 const getProblems = async () => {
-  const snapshot = await db.collection("problems").get();
+  const db = getDB();
+  const snapshot = await db.collection('problems').get();
 
-  const problems = snapshot.docs.map(doc => ({
+  const problems = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data()
   }));

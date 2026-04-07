@@ -131,7 +131,7 @@ useEffect(() => {
 }, [location]);
   const { feedbackList, addFeedback } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [feedbackForm, setFeedbackForm] = useState({ name: '', email: '', category: 'general', message: '', contactPermission: false });
+  const [feedbackForm, setFeedbackForm] = useState({ userName: '', email: '', category: 'general', message: '', contactPermission: false });
   const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'success' | 'error'>('idle');
   
   const approvedFeedback = feedbackList.filter(f => f.status === 'approved');
@@ -141,7 +141,7 @@ useEffect(() => {
     try {
       addFeedback(feedbackForm);
       setFeedbackStatus('success');
-      setFeedbackForm({ name: '', email: '', category: 'general', message: '', contactPermission: false });
+      setFeedbackForm({ userName: '', email: '', category: 'general', message: '', contactPermission: false });
       setTimeout(() => setFeedbackStatus('idle'), 3000);
     } catch {
       setFeedbackStatus('error');
@@ -673,8 +673,8 @@ useEffect(() => {
                   <input
                     type="text"
                     required
-                    value={feedbackForm.name}
-                    onChange={(e) => setFeedbackForm({ ...feedbackForm, name: e.target.value })}
+                    value={feedbackForm.userName}
+                    onChange={(e) => setFeedbackForm({ ...feedbackForm, userName: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
                     placeholder="John Doe"
                   />
