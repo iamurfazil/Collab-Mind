@@ -41,6 +41,8 @@ export default function AuthPage() {
     state: ''
   });
 
+  const API_BASE_URL = 'https://collabmind-backend-995242116294.asia-south1.run.app';
+
   useEffect(() => {
     const modeParam = searchParams.get('mode');
     if (modeParam === 'register') setMode('register');
@@ -142,7 +144,7 @@ export default function AuthPage() {
     setError('');
 
     try {
-      const response = await fetch('https://collabmind-backend-995242116294.asia-south1.run.app/api/auth/send-otp', {
+      const response = await fetch(new URL('/api/auth/send-otp', API_BASE_URL).toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -164,6 +166,8 @@ export default function AuthPage() {
       }
 
       setOtpSent(true);
+      setOtp('');
+      setIsEmailVerified(false);
       addNotification('OTP sent to your email!', 'info');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.');
@@ -172,14 +176,53 @@ export default function AuthPage() {
     }
   };
 
-  const handleVerifyOtp = () => {
-    if (otp === '000000') {
+  const handleVerifyOtp = async () => {
+    if (!formData.email) {
+      setError('Please enter your email address first.');
+      return;
+    }
+
+    if (otp.length !== 6) {
+      setError('Please enter the 6-digit OTP.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    const VERIFY_ENDPOINT = new URL('/api/auth/verify-otp', API_BASE_URL).toString();
+
+    try {
+      const res = await fetch(VERIFY_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: formData.email, otp }),
+      });
+
+      if (!res.ok) {
+        let message = 'Invalid OTP. Please try again.';
+        try {
+          const data = await res.json();
+          if (data && typeof data.message === 'string') {
+            message = data.message;
+          }
+        } catch {
+          // Ignore JSON parse errors and use the default message.
+        }
+        throw new Error(message);
+      }
+
       setIsEmailVerified(true);
-      setOtpSent(false); // Hide the OTP field once verified
+      setOtpSent(false);
+      setOtp('');
       setError('');
       addNotification('Email verified successfully!', 'success');
-    } else {
-      setError('Invalid OTP. Please try again or use 000000 for testing.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -583,18 +626,17 @@ export default function AuthPage() {
                           value={otp}
                           onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                           className="flex-1 px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 tracking-[0.5em] font-mono text-center text-lg placeholder-gray-300"
-                          placeholder="000000"
+                          placeholder="Enter code"
                         />
                         <button
                           type="button"
                           onClick={handleVerifyOtp}
-                          disabled={otp.length !== 6}
+                          disabled={otp.length !== 6 || loading}
                           className="px-6 py-3 bg-gray-900 hover:bg-black text-white font-medium rounded-xl transition-colors disabled:opacity-50 cursor-hover"
                         >
                           Verify
                         </button>
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">Please use <span className="font-bold">000000</span> for testing.</p>
                     </motion.div>
                   )}
                 </AnimatePresence>

@@ -20,4 +20,24 @@ async function sendOtp(req, res) {
   }
 }
 
-module.exports = { getAuthStatus, sendOtp };
+function verifyOtp(req, res) {
+  const { email, otp } = req.body || {};
+
+  if (!email || !otp) {
+    return res.status(400).json({ success: false, message: 'Email and OTP are required' });
+  }
+
+  const otpValue = String(otp).trim();
+  if (!/^\d{6}$/.test(otpValue)) {
+    return res.status(400).json({ success: false, message: 'OTP must be 6 digits' });
+  }
+
+  const result = authService.verifyOtp(email, otpValue);
+  if (!result.ok) {
+    return res.status(400).json({ success: false, message: result.message });
+  }
+
+  return res.status(200).json({ success: true, message: 'OTP verified' });
+}
+
+module.exports = { getAuthStatus, sendOtp, verifyOtp };
