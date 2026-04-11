@@ -1,9 +1,9 @@
 const express = require('express');
-const controller = require('./controller');
 const { requireAuth } = require('../../middleware/authMiddleware');
+const controller = require('./controller');
 
 const router = express.Router();
 
-router.post('/analyze', requireAuth, controller.analyzeIdea);
+router.get('/', requireAuth, controller.getIdeas);
 
 module.exports = router;

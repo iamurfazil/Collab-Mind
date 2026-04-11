@@ -1,9 +1,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-
-
 * {
   cursor: default;
 }
@@ -234,13 +231,27 @@ input:focus, textarea:focus, select:focus {
 
 /* Button base styles */
 .btn-primary {
-  @apply px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl;
-  @apply hover:from-primary-400 hover:to-primary-500;
-  @apply transition-all duration-300;
+  padding: 0.75rem 1.5rem;
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, #F97316, #EA580C);
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(90deg, #FB923C, #F97316);
 }
 
 .btn-accent {
-  @apply px-6 py-3 bg-gradient-to-r from-[#F97316] to-[#FB923C] text-white font-semibold rounded-xl;
-  @apply hover:opacity-90;
-  @apply transition-all duration-300;
+  padding: 0.75rem 1.5rem;
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, #F97316, #FB923C);
+  transition: all 0.3s ease;
+}
+
+.btn-accent:hover {
+  opacity: 0.9;
 }

@@ -35,6 +35,12 @@ export interface CMVCReport {
   feasibility: { technical: number; operational: number; economic: number };
   value_density: number;
   risk: { level: string; risk_score: number };
+  ai_analysis?: {
+    problem?: string;
+    industry?: string;
+    target_users?: string;
+    complexity?: string;
+  };
   final_score: number;
   label: string;
 }
