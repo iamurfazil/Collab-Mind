@@ -5,6 +5,7 @@ import {
   Target, ShieldAlert, Cpu, Database, Network, ArrowRight, ArrowLeft, X
 } from 'lucide-react';
 import { analyzeIdea } from '../../services/api';
+import { useStore } from '../../store';
 
 // FIX IS HERE: Added the word 'type'
 import type { CMVCReport } from '../../store';
@@ -56,6 +57,7 @@ export default function CMVCReportModal({ ideaTitle, ideaDescription, onProceed,
   const [loadingStep, setLoadingStep] = useState(0);
   const [report, setReport] = useState<CMVCReport | null>(reportData || null);
   const [analysisError, setAnalysisError] = useState('');
+  const authToken = useStore(state => state.authToken);
 
   // The 8-Step GCP Pipeline Steps to display during loading
   const pipelineSteps = [
@@ -80,17 +82,12 @@ export default function CMVCReportModal({ ideaTitle, ideaDescription, onProceed,
 
     const runAnalysis = async () => {
       try {
-        const token =
-          localStorage.getItem('firebaseIdToken') ||
-          localStorage.getItem('authToken') ||
-          '';
-
         const result = await analyzeIdea(
           {
             title: ideaTitle,
             description: ideaDescription,
           },
-          token
+          authToken || undefined
         );
 
         if (!result?.success || !result?.data) {
@@ -119,7 +116,7 @@ export default function CMVCReportModal({ ideaTitle, ideaDescription, onProceed,
       cancelled = true;
       clearInterval(interval);
     };
-  }, [ideaTitle, ideaDescription, viewOnly]);
+  }, [authToken, ideaTitle, ideaDescription, viewOnly]);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">

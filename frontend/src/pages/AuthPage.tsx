@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FirebaseError } from 'firebase/app';
 import { useStore } from '../store';
 import { 
   Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle,
@@ -38,7 +39,7 @@ export default function AuthPage() {
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showGoogleSetup, setShowGoogleSetup] = useState(false);
-  
+
   // OTP States
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
@@ -60,6 +61,46 @@ export default function AuthPage() {
   });
 
   const API_BASE_URL = 'https://collabmind-backend-995242116294.asia-south1.run.app';
+
+  const getFirebaseLoginErrorMessage = (error: unknown) => {
+    if (error instanceof FirebaseError) {
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        return 'Incorrect password. Please try again.';
+      }
+
+      if (error.code === 'auth/user-not-found') {
+        return 'No account found with this email.';
+      }
+
+      if (error.code === 'auth/invalid-email') {
+        return 'Please enter a valid email address.';
+      }
+
+      if (error.code === 'auth/too-many-requests') {
+        return 'Too many login attempts. Please try again later.';
+      }
+    }
+
+    return 'Unable to sign in right now. Please try again.';
+  };
+
+  const getResetPasswordErrorMessage = (error: unknown) => {
+    if (error instanceof FirebaseError) {
+      if (error.code === 'auth/user-not-found') {
+        return 'No account found with this email address.';
+      }
+
+      if (error.code === 'auth/network-request-failed') {
+        return 'Network issue detected. Please check your connection and try again.';
+      }
+
+      if (error.code === 'auth/invalid-email') {
+        return 'Please enter a valid email address.';
+      }
+    }
+
+    return 'Failed to send reset email. Please try again.';
+  };
 
   useEffect(() => {
     const modeParam = searchParams.get('mode');
@@ -92,11 +133,9 @@ export default function AuthPage() {
       if (result) {
         addNotification('Welcome back!', 'success');
         navigate('/dashboard');
-      } else {
-        setError('Invalid credentials. Use demo@collabmind.com / demo123');
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError(getFirebaseLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -122,7 +161,7 @@ export default function AuthPage() {
         setError('Google sign-in failed. Please try again.');
       }
     } catch (err) {
-      setError('An error occurred with Google sign-in.');
+      setError(err instanceof Error ? err.message : 'An error occurred with Google sign-in.');
     } finally {
       setLoading(false);
     }
@@ -164,13 +203,15 @@ export default function AuthPage() {
     setLoading(true);
     setError('');
 
-    const OTP_ENDPOINT = new URL("/api/auth/send-otp", API_BASE_URL).toString();
+    const OTP_ENDPOINT = new URL('/api/auth/send-otp', API_BASE_URL).toString();
+    const token = localStorage.getItem('firebaseIdToken') || localStorage.getItem('authToken');
 
     try {
       const res = await fetch(OTP_ENDPOINT, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ email: formData.email }),
       });
@@ -214,12 +255,14 @@ export default function AuthPage() {
     setError('');
 
     const VERIFY_ENDPOINT = new URL('/api/auth/verify-otp', API_BASE_URL).toString();
+    const token = localStorage.getItem('firebaseIdToken') || localStorage.getItem('authToken');
 
     try {
       const res = await fetch(VERIFY_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ email: formData.email, otp }),
       });
@@ -260,7 +303,7 @@ export default function AuthPage() {
       setLoading(false);
       return;
     }
-    
+
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
       setLoading(false);
@@ -292,7 +335,7 @@ export default function AuthPage() {
         setError('Registration failed. Please try again.');
       }
     } catch (err) {
-      setError('An error occurred during registration.');
+      setError(err instanceof Error ? err.message : 'An error occurred during registration.');
     } finally {
       setLoading(false);
     }
@@ -305,14 +348,10 @@ export default function AuthPage() {
     setSuccess('');
     
     try {
-      const result = await resetPassword(formData.email);
-      if (result) {
-        setSuccess('Password reset link sent to your email!');
-      } else {
-        setError('Failed to send reset email. Please try again.');
-      }
+      await resetPassword(formData.email);
+      setSuccess('Password reset link sent to your email!');
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError(getResetPasswordErrorMessage(err));
     } finally {
       setLoading(false);
     }

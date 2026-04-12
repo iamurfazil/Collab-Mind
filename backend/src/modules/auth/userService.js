@@ -11,11 +11,12 @@ async function saveUser(user) {
   const payload = {
     uid: user.uid,
     email: user.email || null,
-    name: user.name || user.displayName || null,
+    displayName: user.displayName || user.name || null,
     createdAt: existing.exists ? existing.data().createdAt : new Date().toISOString(),
   };
 
   await userRef.set(payload, { merge: true });
+  console.log('FIRESTORE WRITE:', { collection: 'users', docId: user.uid, existsBefore: existing.exists });
   return payload;
 }
 

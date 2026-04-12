@@ -14,6 +14,7 @@ async function requireAuth(req, res, next) {
   try {
     const decoded = await admin.auth().verifyIdToken(token);
     req.user = decoded;
+    console.log('REQ.USER VERIFIED:', req.user);
     return next();
   } catch (error) {
     return res.status(401).json({
