@@ -7,6 +7,7 @@ import MyIdeas from '../components/dashboard/MyIdeas';
 import BrowseIdeas from '../components/dashboard/BrowseIdeas';
 import Requests from '../components/dashboard/Requests';
 import Chat from '../components/dashboard/Chat';
+import NexusAI from '../components/dashboard/NexusAI';
 import Submissions from '../components/dashboard/Submissions';
 import Certificates from '../components/dashboard/Certificates';
 import Settings from '../components/dashboard/Settings';
@@ -16,7 +17,7 @@ import ProjectWorkspace from '../components/dashboard/ProjectWorkspace';
 import { 
   LayoutDashboard, Lightbulb, Users, MessageSquare, FileText, 
   Award, Settings as SettingsIcon, Menu, X, LogOut, ChevronDown,
-  Zap, User
+  Zap, User, Bot
 } from 'lucide-react';
 
 const navItems = [
@@ -37,6 +38,7 @@ export default function Dashboard() {
   const { user, logout, showProfileModal } = useStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [nexusFabOpen, setNexusFabOpen] = useState(false);
 
   const currentPath = location.pathname;
 
@@ -52,6 +54,21 @@ export default function Dashboard() {
       navigate('/auth');
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    setNexusFabOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setNexusFabOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -240,6 +257,7 @@ export default function Dashboard() {
                 <Route path="current-projects" element={<CurrentProjects />} />
                 <Route path="requests" element={<Requests />} />
                 <Route path="chat" element={<Chat />} />
+                <Route path="nexus-ai" element={<NexusAI />} />
                 <Route path="submissions" element={<Submissions />} />
                 <Route path="certificates" element={<Certificates />} />
                 <Route path="settings" element={<Settings />} />
@@ -249,6 +267,45 @@ export default function Dashboard() {
           </AnimatePresence>
         </div>
       </main>
+
+      <AnimatePresence>
+        {nexusFabOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/25 z-50"
+              onClick={() => setNexusFabOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, x: 48 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 48 }}
+              className="fixed top-0 right-0 h-screen w-full sm:w-[430px] z-[60] bg-white border-l border-gray-200 shadow-2xl p-4"
+            >
+              <NexusAI embedded onClose={() => setNexusFabOpen(false)} />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {!nexusFabOpen && (
+        <div className="fixed right-4 bottom-4 lg:right-8 lg:bottom-8 z-[70]">
+          <motion.button
+            onClick={() => setNexusFabOpen(true)}
+            className="relative h-14 w-14 rounded-full bg-gradient-to-br from-orange-500 to-orange-400 text-white shadow-xl flex items-center justify-center border-2 border-white"
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.95 }}
+            aria-label="Open Nexus drawer"
+          >
+            <span className="absolute inset-0 rounded-full ring-4 ring-orange-300/40 pointer-events-none" />
+            <span className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <Bot className="w-5 h-5" />
+            </span>
+          </motion.button>
+        </div>
+      )}
 
       {showProfileModal && <ProfileModal />}
     </div>

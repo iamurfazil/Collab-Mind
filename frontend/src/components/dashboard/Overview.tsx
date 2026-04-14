@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useStore } from '../../store';
 import { 
   Lightbulb, Users, TrendingUp, Award, Shield, CheckCircle,
-  Sparkles, Calendar, Target, MessageSquare, User
+  Sparkles, Calendar, Target, MessageSquare, User, Bot
 } from 'lucide-react';
 
 export default function Overview() {
@@ -117,6 +117,15 @@ export default function Overview() {
                     <div className="text-sm text-gray-500">{pendingRequests.length} pending requests</div>
                   </div>
                 </a>
+                <a href="/dashboard/nexus-ai" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-hover transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                    <Bot className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">Nexus AI</div>
+                    <div className="text-sm text-gray-500">Refine your idea and shortlist better builders</div>
+                  </div>
+                </a>
               </>
             ) : (
               <>
@@ -136,6 +145,15 @@ export default function Overview() {
                   <div className="flex-1">
                     <div className="font-medium text-gray-900">Messages</div>
                     <div className="text-sm text-gray-500">Check your conversations</div>
+                  </div>
+                </a>
+                <a href="/dashboard/nexus-ai" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-hover transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                    <Bot className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">Nexus AI</div>
+                    <div className="text-sm text-gray-500">Get proposal help and match-fit guidance</div>
                   </div>
                 </a>
               </>
