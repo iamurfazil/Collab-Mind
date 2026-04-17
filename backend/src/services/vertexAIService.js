@@ -4,16 +4,52 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 let aiClient = null;
+let usingVertexAI = false;
+
+function isVertexConfigured() {
+  return Boolean(process.env.GCP_PROJECT_ID);
+}
+
+function getConfiguredLocation() {
+  return process.env.VERTEX_LOCATION || "us-central1";
+}
+
+function getModelForMode() {
+  if (process.env.GEMINI_MODEL) {
+    return process.env.GEMINI_MODEL;
+  }
+
+  if (process.env.VERTEX_MODEL) {
+    return process.env.VERTEX_MODEL;
+  }
+
+  return usingVertexAI
+    ? "publishers/google/models/gemini-1.5-flash"
+    : "gemini-2.5-flash";
+}
 
 function getAIClient() {
   if (aiClient) {
     return aiClient;
   }
 
+  const apiKey = process.env.GOOGLE_API_KEY;
+
+  if (apiKey) {
+    usingVertexAI = false;
+    aiClient = new GoogleGenAI({ apiKey });
+    return aiClient;
+  }
+
+  if (!isVertexConfigured()) {
+    throw new Error("Missing GOOGLE_API_KEY or GCP_PROJECT_ID for Gemini client configuration");
+  }
+
+  usingVertexAI = true;
   aiClient = new GoogleGenAI({
     vertexai: true,
     project: process.env.GCP_PROJECT_ID,
-    location: "us-central1"
+    location: getConfiguredLocation(),
   });
 
   return aiClient;
@@ -21,13 +57,8 @@ function getAIClient() {
 
 async function analyzeIdeaWithAI(title, description) {
   try {
-    console.log("VERTEX FUNCTION CALLED (GENAI)");
-
-    const model =
-      process.env.VERTEX_MODEL ||
-      "publishers/google/models/gemini-1.5-flash";
-
-    console.log("Using Vertex Model:", model);
+    getAIClient();
+    const model = getModelForMode();
 
     const prompt = `
     Analyze this startup idea and return JSON:
@@ -54,16 +85,12 @@ async function analyzeIdeaWithAI(title, description) {
       ]
     });
 
-    console.log("FULL GEMINI RESPONSE:", JSON.stringify(response, null, 2));
-
     const text =
       response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     if (!text) {
       throw new Error("Empty response from Gemini");
     }
-
-    console.log("RAW GEMINI RESPONSE:", text);
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
 
@@ -82,18 +109,29 @@ function buildRoleSystemPrompt(role) {
     return `You are CollabMind Nexus, an AI assistant for Idea Posters (problem owners).
 Help users refine ideas, define scope, break work into milestones, and evaluate builders.
 Always be practical, concise, and actionable.
-Return plain text with short sections and bullets when useful.`;
+Prioritize startup growth and early traction: finding first users, rapid validation, and low-cost acquisition.
+When useful, include:
+- 3 immediate next actions
+- 2 user acquisition experiments
+- 1 retention improvement
+Return plain text with short sections and bullets.`;
   }
 
   return `You are CollabMind Nexus, an AI assistant for Builders.
 Help users discover fitting ideas, craft strong proposals, estimate effort, and ask the right clarifying questions.
 Always be practical, concise, and actionable.
-Return plain text with short sections and bullets when useful.`;
+Prioritize startup shipping speed and growth support: MVP-first development, onboarding flow, analytics, and retention loops.
+When useful, include:
+- 3 build priorities for this week
+- 2 growth-oriented product improvements
+- 1 technical risk to monitor
+Return plain text with short sections and bullets.`;
 }
 
 async function generateNexusAIReply({ role, message, history = [], contextSummary = '', userId = '' }) {
   try {
-    const model = process.env.VERTEX_MODEL || 'publishers/google/models/gemini-1.5-flash';
+    getAIClient();
+    const model = getModelForMode();
     const systemPrompt = buildRoleSystemPrompt(role);
 
     const historyText = history

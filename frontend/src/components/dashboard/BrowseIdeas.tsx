@@ -17,7 +17,7 @@ export default function BrowseIdeas() {
 
   const { user, ideas, requests, addRequest, addNotification, setProfileToView, updateUser } = useStore();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'open'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'in_review'>('all');
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<typeof ideas[0] | null>(null);
   const [requestAnswer, setRequestAnswer] = useState('');
@@ -46,7 +46,7 @@ export default function BrowseIdeas() {
   const availableIdeas = ideas.filter((idea) => {
     return (
       idea.isPublished &&
-      idea.status === 'open' &&
+      (idea.status === 'open' || idea.status === 'in_review') &&
       idea.userId !== user.id &&
       !hiddenIdeaIds.includes(idea.id)
     );
@@ -130,6 +130,7 @@ export default function BrowseIdeas() {
         >
           <option value="all">All Status</option>
           <option value="open">Open</option>
+          <option value="in_review">In Review</option>
         </select>
       </div>
 
@@ -336,8 +337,14 @@ export default function BrowseIdeas() {
               className="bg-white border border-gray-200 shadow-sm rounded-2xl p-6 card-3d flex flex-col"
             >
               <div className="flex items-start justify-between mb-4">
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-600 border border-green-200">
-                  Open
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                    idea.status === 'in_review'
+                      ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                      : 'bg-green-50 text-green-600 border-green-200'
+                  }`}
+                >
+                  {idea.status === 'in_review' ? 'In Review' : 'Open'}
                 </span>
                 {hasRequested(idea.id) && (
                   <span className="flex items-center gap-1 text-xs font-medium text-orange-500">

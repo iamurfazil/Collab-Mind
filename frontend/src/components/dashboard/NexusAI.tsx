@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Bot, Lightbulb, Send, Sparkles, User2, Wrench, X } from 'lucide-react';
+import { Bot, Copy, Lightbulb, Send, Sparkles, Trash2, User2, Wrench, X } from 'lucide-react';
 import { useStore } from '../../store';
 // @ts-ignore - existing API module is JavaScript; runtime exports are valid.
 import { askNexusAI } from '../../services/api';
@@ -21,6 +21,19 @@ const WELCOME_MESSAGE: NexusMessage = {
     'I am CollabMind Nexus. I can help you match ideas and builders, shape deliverables, and plan next steps. Tell me your goal and I will guide you.',
 };
 
+const STARTUP_PROMPTS: Record<NexusRole, string[]> = {
+  owner: [
+    'Create a 30-day launch plan to get first 100 users for my startup idea.',
+    'Write a sharp 30-second pitch and landing page headline for my startup.',
+    'Give me 5 low-cost user acquisition channels and weekly experiment ideas.',
+  ],
+  builder: [
+    'Give me an MVP build roadmap that helps launch fast and attract early users.',
+    'Create a technical plan for analytics, onboarding, and retention from day one.',
+    'List growth features I should build first to help a startup get users faster.',
+  ],
+};
+
 function toTitleRole(role: NexusRole) {
   return role === 'owner' ? 'Idea Poster' : 'Builder';
 }
@@ -31,7 +44,7 @@ type NexusAIProps = {
 };
 
 export default function NexusAI({ embedded = false, onClose }: NexusAIProps) {
-  const { user } = useStore();
+  const { user, addNotification } = useStore();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<NexusMessage[]>([WELCOME_MESSAGE]);
@@ -111,7 +124,10 @@ export default function NexusAI({ embedded = false, onClose }: NexusAIProps) {
         history: historyForApi,
         context: {
           skills: user.skills || [],
-          goal: role === 'owner' ? 'find builders for my idea' : 'find projects and collaborate',
+          goal:
+            role === 'owner'
+              ? 'find builders, validate market, and get first users for my startup idea'
+              : 'ship MVP fast, support startup growth, and improve acquisition and retention',
         },
       });
 
@@ -124,6 +140,7 @@ export default function NexusAI({ embedded = false, onClose }: NexusAIProps) {
       setMessages((prev) => [...prev, assistantReply]);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Something went wrong while contacting Nexus AI.';
+      addNotification(errorMessage, 'error');
       setMessages((prev) => [
         ...prev,
         {
@@ -141,6 +158,39 @@ export default function NexusAI({ embedded = false, onClose }: NexusAIProps) {
     event.preventDefault();
     await sendMessage(input);
   };
+
+  const handleClearChat = () => {
+    if (!historyStorageKey) {
+      setMessages([WELCOME_MESSAGE]);
+      return;
+    }
+
+    const confirmed = window.confirm('Delete this Nexus chat history? This cannot be undone.');
+    if (!confirmed) {
+      return;
+    }
+
+    localStorage.removeItem(historyStorageKey);
+    setMessages([WELCOME_MESSAGE]);
+    addNotification('Nexus chat history deleted.', 'success');
+  };
+
+  const handleCopyLastReply = async () => {
+    const lastAssistantMessage = [...messages].reverse().find((msg) => msg.role === 'assistant');
+    if (!lastAssistantMessage) {
+      addNotification('No Nexus reply available to copy yet.', 'info');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(lastAssistantMessage.content);
+      addNotification('Copied latest Nexus reply.', 'success');
+    } catch {
+      addNotification('Unable to copy right now. Please try again.', 'error');
+    }
+  };
+
+  const quickPrompts = STARTUP_PROMPTS[role];
 
   return (
     <div className={embedded ? 'h-full flex flex-col' : 'space-y-6'}>
@@ -178,11 +228,54 @@ export default function NexusAI({ embedded = false, onClose }: NexusAIProps) {
       </div>
 
       <div className={`bg-white border border-gray-200 shadow-sm overflow-hidden ${embedded ? 'rounded-2xl flex-1 min-h-0 flex flex-col' : 'rounded-3xl'}`}>
-        <div className="p-4 border-b border-gray-200 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
-            <Bot className="w-4 h-4" />
-          </span>
-          <h2 className="font-semibold text-gray-900">Nexus Conversation</h2>
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
+              <Bot className="w-4 h-4" />
+            </span>
+            <h2 className="font-semibold text-gray-900">Nexus Conversation</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopyLastReply}
+              disabled={messages.length <= 1}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Copy latest Nexus response"
+              title="Copy latest Nexus response"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              Copy Reply
+            </button>
+            <button
+              type="button"
+              onClick={handleClearChat}
+              disabled={isLoading || messages.length <= 1}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Delete chat history"
+              title="Delete chat history"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete Chat
+            </button>
+          </div>
+        </div>
+
+        <div className="px-4 md:px-6 py-3 border-b border-gray-100 bg-white">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Startup Boost Prompts</p>
+          <div className="flex flex-wrap gap-2">
+            {quickPrompts.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => sendMessage(prompt)}
+                disabled={isLoading}
+                className="px-3 py-1.5 rounded-full border border-orange-200 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 disabled:opacity-50"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className={`${embedded ? 'flex-1 min-h-0' : 'h-[420px]'} overflow-y-auto p-4 md:p-6 space-y-4 bg-gradient-to-b from-orange-50/40 to-white`}>

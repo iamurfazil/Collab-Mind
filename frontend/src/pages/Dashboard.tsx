@@ -44,7 +44,6 @@ export default function Dashboard() {
 
   const filteredNavItems = navItems.filter(item => {
     if (item.id === "browse-ideas" && user?.role === "owner") return false;
-    if (item.id === "my-ideas" && user?.role === "builder") return false;
     if (item.id === "certificates" && user?.role === "owner") return false;
     return true;
   });
@@ -240,8 +239,10 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 lg:ml-72 pt-16 lg:pt-0">
-        <div className="p-6 lg:p-8">
+      <main className="relative flex-1 lg:ml-72 pt-16 lg:pt-0 overflow-hidden">
+        <div className="pointer-events-none absolute -top-20 right-0 h-80 w-80 rounded-full bg-orange-200/30 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-10 h-72 w-72 rounded-full bg-orange-100/50 blur-3xl" />
+        <div className="relative p-6 lg:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentPath}

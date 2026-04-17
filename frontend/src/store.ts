@@ -65,7 +65,7 @@ interface Idea {
   title: string;
   description: string;
   expectations: string;
-  status: 'open' | 'in_review' | 'pending_review' | 'completed';
+  status: 'draft' | 'patent' | 'in_patent' | 'open' | 'in_review' | 'in_progress' | 'pending_review' | 'completed';
   progress?: number;
   projectStatus?: string;
   dueDate?: string;
@@ -254,6 +254,97 @@ async function syncAuthenticatedUser(firebaseUser: FirebaseUser): Promise<string
   return token;
 }
 
+async function parseJsonSafe(response: Response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchIdeasFromBackend(token: string): Promise<Idea[] | null> {
+  try {
+    const response = await fetch(new URL('/api/ideas', BACKEND_BASE_URL).toString(), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn('Ideas endpoint /api/ideas not found. Keeping local ideas.');
+        return null;
+      }
+      throw new Error(`Failed to fetch ideas (${response.status})`);
+    }
+
+    const payload = await parseJsonSafe(response);
+    if (!payload?.success || !Array.isArray(payload.data)) {
+      return null;
+    }
+
+    return payload.data as Idea[];
+  } catch (error) {
+    if (error instanceof TypeError) {
+      console.warn('Ideas backend unreachable. Keeping local ideas.');
+      return null;
+    }
+    console.warn('Failed to sync ideas:', error);
+    return null;
+  }
+}
+
+async function createIdeaInBackend(token: string, idea: Omit<Idea, 'id' | 'createdAt'> & { createdAt?: string }) {
+  const response = await fetch(new URL('/api/ideas', BACKEND_BASE_URL).toString(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(idea),
+  });
+
+  const payload = await parseJsonSafe(response);
+  if (!response.ok || !payload?.success || !payload?.data) {
+    throw new Error(payload?.message || 'Failed to create idea');
+  }
+
+  return payload.data as Idea;
+}
+
+async function updateIdeaInBackend(token: string, id: string, updates: Partial<Idea>) {
+  const response = await fetch(new URL(`/api/ideas/${id}`, BACKEND_BASE_URL).toString(), {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(updates),
+  });
+
+  const payload = await parseJsonSafe(response);
+  if (!response.ok || !payload?.success || !payload?.data) {
+    throw new Error(payload?.message || 'Failed to update idea');
+  }
+
+  return payload.data as Idea;
+}
+
+async function deleteIdeaInBackend(token: string, id: string) {
+  const response = await fetch(new URL(`/api/ideas/${id}`, BACKEND_BASE_URL).toString(), {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const payload = await parseJsonSafe(response);
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.message || 'Failed to delete idea');
+  }
+}
+
 const mockIdeas: Idea[] = [
   {
     id: 'idea1',
@@ -415,7 +506,7 @@ export const useStore = create<AppState>()(
         onIdTokenChanged(auth, async firebaseUser => {
           if (!firebaseUser) {
             setStoredToken(null);
-            set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true });
+            set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, ideas: [] });
             return;
           }
 
@@ -423,12 +514,19 @@ export const useStore = create<AppState>()(
             const token = await syncAuthenticatedUser(firebaseUser);
             const existingRole = get().user?.role;
             const user = mapFirebaseUserToAppUser(firebaseUser, existingRole || 'builder');
+            const syncedIdeas = await fetchIdeasFromBackend(token);
 
             setStoredToken(token);
-            set({ user, authToken: token, isAuthenticated: true, isAuthReady: true });
+            set({
+              user,
+              authToken: token,
+              isAuthenticated: true,
+              isAuthReady: true,
+              ideas: syncedIdeas ?? get().ideas,
+            });
           } catch {
             setStoredToken(null);
-            set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true });
+            set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, ideas: [] });
           }
         });
       },
@@ -442,8 +540,9 @@ export const useStore = create<AppState>()(
         console.log('USER:', user);
         console.log('TOKEN:', token);
 
+        const syncedIdeas = await fetchIdeasFromBackend(token);
         setStoredToken(token);
-        set({ user, authToken: token, isAuthenticated: true, isAuthReady: true });
+        set({ user, authToken: token, isAuthenticated: true, isAuthReady: true, ideas: syncedIdeas ?? get().ideas });
         return true;
       },
       
@@ -456,15 +555,16 @@ export const useStore = create<AppState>()(
         console.log('USER:', user);
         console.log('TOKEN:', token);
 
+        const syncedIdeas = await fetchIdeasFromBackend(token);
         setStoredToken(token);
-        set({ user, authToken: token, isAuthenticated: true, isAuthReady: true });
+        set({ user, authToken: token, isAuthenticated: true, isAuthReady: true, ideas: syncedIdeas ?? get().ideas });
         return true;
       },
       
       logout: () => {
         void signOut(auth);
         setStoredToken(null);
-        set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, activeSection: 'overview' });
+        set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, activeSection: 'overview', ideas: [] });
       },
       
       register: async (email: string, password: string, displayName: string, role: 'owner' | 'builder') => {
@@ -480,8 +580,9 @@ export const useStore = create<AppState>()(
         const user = mapFirebaseUserToAppUser(currentUser, role);
         console.log('USER:', user);
         console.log('TOKEN:', token);
+        const syncedIdeas = await fetchIdeasFromBackend(token);
         setStoredToken(token);
-        set({ user, authToken: token, isAuthenticated: true, isAuthReady: true });
+        set({ user, authToken: token, isAuthenticated: true, isAuthReady: true, ideas: syncedIdeas ?? get().ideas });
         return true;
       },
       
@@ -500,15 +601,60 @@ export const useStore = create<AppState>()(
       },
       
       ideas: mockIdeas,
-      addIdea: (idea) => set((state) => ({
-        ideas: [...state.ideas, { ...idea, id: generateId(), createdAt: new Date().toISOString(), collaborators: [] }]
-      })),
-      updateIdea: (id, updates) => set((state) => ({
-        ideas: state.ideas.map(idea => idea.id === id ? { ...idea, ...updates } : idea)
-      })),
-      deleteIdea: (id) => set((state) => ({
-        ideas: state.ideas.filter(idea => idea.id !== id)
-      })),
+      addIdea: (idea) => {
+        const tempId = generateId();
+        const optimisticIdea: Idea = {
+          ...idea,
+          id: tempId,
+          createdAt: new Date().toISOString(),
+          collaborators: idea.collaborators || [],
+        };
+
+        set((state) => ({ ideas: [...state.ideas, optimisticIdea] }));
+
+        const token = get().authToken || localStorage.getItem(FIREBASE_TOKEN_KEY) || '';
+        if (!token) return;
+
+        void createIdeaInBackend(token, optimisticIdea)
+          .then((savedIdea) => {
+            set((state) => ({
+              ideas: state.ideas.map((existingIdea) => existingIdea.id === tempId ? savedIdea : existingIdea),
+            }));
+          })
+          .catch((error) => {
+            console.warn('Failed to persist idea:', error);
+          });
+      },
+      updateIdea: (id, updates) => {
+        set((state) => ({
+          ideas: state.ideas.map((idea) => idea.id === id ? { ...idea, ...updates } : idea),
+        }));
+
+        const token = get().authToken || localStorage.getItem(FIREBASE_TOKEN_KEY) || '';
+        if (!token) return;
+
+        void updateIdeaInBackend(token, id, updates)
+          .then((savedIdea) => {
+            set((state) => ({
+              ideas: state.ideas.map((idea) => idea.id === id ? savedIdea : idea),
+            }));
+          })
+          .catch((error) => {
+            console.warn('Failed to persist idea update:', error);
+          });
+      },
+      deleteIdea: (id) => {
+        set((state) => ({
+          ideas: state.ideas.filter((idea) => idea.id !== id),
+        }));
+
+        const token = get().authToken || localStorage.getItem(FIREBASE_TOKEN_KEY) || '';
+        if (!token) return;
+
+        void deleteIdeaInBackend(token, id).catch((error) => {
+          console.warn('Failed to persist idea deletion:', error);
+        });
+      },
       
       requests: mockRequests,
       addRequest: (request) => set((state) => ({

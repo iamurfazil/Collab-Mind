@@ -11,15 +11,20 @@ export default function Overview() {
   if (!user) return null;
 
   const userIdeas = ideas.filter(i => i.userId === user.id);
-  const pendingRequests = requests.filter(r => r.status === 'pending');
-  const completedProjects = userIdeas.filter(i => i.status === 'completed').length;
-  const completionRate = userIdeas.length > 0 ? Math.round((completedProjects / userIdeas.length) * 100) : 0;
+  const pendingRequests = requests.filter(r => r.status === 'pending' && r.ownerId === user.id);
+  const activeProjects = ideas.filter(
+    i => (i.userId === user.id || i.collaborators.includes(user.id)) && (i.status === 'in_review' || i.status === 'pending_review')
+  ).length;
+  const completedProjects = ideas.filter(
+    i => (i.userId === user.id || i.collaborators.includes(user.id)) && i.status === 'completed'
+  ).length;
+  const trustScore = Math.max(user.trustScore, userIdeas.length > 0 ? 70 : user.trustScore);
 
   const stats = [
-    { label: 'Problems Posted', value: user.problemsPosted, icon: Lightbulb, color: 'from-orange-500 to-orange-400' },
-    { label: 'Active Projects', value: user.activeProjects, icon: Users, color: 'from-blue-400 to-blue-600' },
-    { label: 'Completed', value: user.completedProjects, icon: CheckCircle, color: 'from-green-400 to-green-600' },
-    { label: 'Trust Score', value: user.trustScore, icon: Shield, color: 'from-purple-400 to-purple-600' },
+    { label: 'Ideas Posted', value: userIdeas.length, icon: Lightbulb, color: 'from-orange-500 to-orange-400' },
+    { label: 'Active Projects', value: activeProjects, icon: Users, color: 'from-blue-400 to-blue-600' },
+    { label: 'Completed', value: completedProjects, icon: CheckCircle, color: 'from-green-400 to-green-600' },
+    { label: 'Trust Score', value: trustScore, icon: Shield, color: 'from-purple-400 to-purple-600' },
   ];
 
   return (
@@ -129,6 +134,15 @@ export default function Overview() {
               </>
             ) : (
               <>
+                <a href="/dashboard/my-ideas" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-hover transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                    <Lightbulb className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">Post & Validate Idea</div>
+                    <div className="text-sm text-gray-500">Run CMVC and add it to your personal projects</div>
+                  </div>
+                </a>
                 <a href="/dashboard/browse-ideas" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-hover transition-colors">
                   <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
                     <Target className="w-5 h-5 text-orange-500" />
@@ -195,10 +209,33 @@ export default function Overview() {
             </>
           ) : (
             <>
-              <h2 className="text-xl font-bold mb-4 text-gray-900">Your Certificates</h2>
+              <h2 className="text-xl font-bold mb-4 text-gray-900">Your Posted Ideas</h2>
+              {userIdeas.length > 0 ? (
+                <div className="space-y-3 mb-5">
+                  {userIdeas.slice(0, 2).map((idea) => (
+                    <div key={idea.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center">
+                        <Lightbulb className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 line-clamp-1">{idea.title}</div>
+                        <div className="text-sm text-gray-500 capitalize">{idea.status.replace('_', ' ')}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 mb-4">
+                  <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500">No personal ideas posted yet</p>
+                  <p className="text-sm text-gray-400">Post from My Ideas and run CMVC to move them into your projects</p>
+                </div>
+              )}
+
+              <h3 className="text-lg font-bold mb-3 text-gray-900">Your Certificates</h3>
               {certificates.length > 0 ? (
                 <div className="space-y-3">
-                  {certificates.slice(0, 3).map((cert) => (
+                  {certificates.slice(0, 2).map((cert) => (
                     <div key={cert.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-400 flex items-center justify-center">
                         <Award className="w-5 h-5 text-white" />
@@ -211,10 +248,8 @@ export default function Overview() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Award className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500">No certificates yet</p>
-                  <p className="text-sm text-gray-400">Complete projects to earn certificates</p>
+                <div className="text-center py-2">
+                  <p className="text-sm text-gray-400">No certificates yet</p>
                 </div>
               )}
             </>
