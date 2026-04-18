@@ -157,6 +157,7 @@ export default function AuthPage() {
     try {
       const result = await login(formData.email, formData.password);
       if (result) {
+<<<<<<< HEAD
         // If an admin somehow logs in through standard firebase (if created there), route them correctly
         const currentUser = useStore.getState().user;
         if (currentUser?.role === 'admin') {
@@ -166,6 +167,10 @@ export default function AuthPage() {
           addNotification('Welcome back!', 'success');
           navigate('/dashboard');
         }
+=======
+        addNotification('Welcome back!', 'success');
+        navigate('/dashboard');
+>>>>>>> a12b3953ac60985c5ad1e82342b0925b6aa50341
       }
     } catch (err) {
       setError(getFirebaseLoginErrorMessage(err));
