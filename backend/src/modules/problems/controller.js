@@ -1,12 +1,8 @@
-const { getProblems } = require('./service');
-
 const getProblemsHandler = async (req, res) => {
-  try {
-    const data = await getProblems();
-    res.json({ success: true, data });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  return res.status(410).json({
+    success: false,
+    message: 'Problems module is deprecated',
+  });
 };
 
 module.exports = { getProblemsHandler };

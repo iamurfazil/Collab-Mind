@@ -1,23 +1,16 @@
-const authService = require('./service');
+const { saveUser } = require('./userService');
 
-function getAuthStatus(req, res) {
-  const data = authService.getStatus();
-  return res.status(200).json({ success: true, data });
-}
-
-async function sendOtp(req, res) {
-  const { email } = req.body || {};
-
-  if (!email) {
-    return res.status(400).json({ success: false, message: 'Email is required' });
-  }
-
+async function me(req, res) {
   try {
-    await authService.sendOtp(email);
-    return res.status(200).json({ success: true, message: 'OTP sent' });
+    console.log('REQ.USER:', req.user);
+    const user = await saveUser({
+      ...req.user,
+      ...req.body,
+    });
+    return res.status(200).json({ success: true, data: user });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Failed to send OTP' });
+    return res.status(500).json({ success: false, message: error.message });
   }
 }
 
-module.exports = { getAuthStatus, sendOtp };
+module.exports = { me };

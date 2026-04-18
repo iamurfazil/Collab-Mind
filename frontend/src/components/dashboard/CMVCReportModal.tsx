@@ -4,6 +4,8 @@ import {
   Brain, TrendingUp, AlertTriangle, Zap, CheckCircle, 
   Target, ShieldAlert, Cpu, Database, Network, ArrowRight, ArrowLeft, X
 } from 'lucide-react';
+import { analyzeIdea } from '../../services/api';
+import { useStore } from '../../store';
 
 // FIX IS HERE: Added the word 'type'
 import type { CMVCReport } from '../../store';
@@ -18,35 +20,44 @@ interface CMVCReportModalProps {
   reportData?: CMVCReport; 
 }
 
-// Simulated JSON Output based on your GCP Architecture Spec
-const generateMockReport = (title: string): CMVCReport => ({
-  idea_summary: `AI-driven analysis of "${title}"`,
-  problem_validation: "Strong market indicator found in recent search trends. The problem space shows a 24% YoY growth in developer queries.",
-  market_analysis: {
-    demand_score: 8.5
-  },
-  competition: {
-    similarity_score: 0.62,
-    similar_examples: ["Startup Alpha", "Beta Solutions"]
-  },
-  feasibility: {
-    technical: 7.5,
-    operational: 6.0,
-    economic: 8.0
-  },
-  value_density: 8.2, // (Severity × Frequency × WTP) / Complexity
-  risk: {
-    level: "low",
-    risk_score: 3.5
-  },
-  final_score: 8.1,
-  label: "High Potential"
-});
+function normalizeReport(data: any): CMVCReport {
+  return {
+    idea_summary: data?.idea_summary || '',
+    problem_validation: data?.problem_validation || '',
+    market_analysis: {
+      demand_score: Number(data?.market_analysis?.demand_score || 0),
+    },
+    competition: {
+      similarity_score: Number(data?.competition?.similarity_score || 0),
+      similar_examples: data?.competition?.similar_examples || [],
+    },
+    feasibility: {
+      technical: Number(data?.feasibility?.technical || 0),
+      operational: Number(data?.feasibility?.operational || 0),
+      economic: Number(data?.feasibility?.economic || 0),
+    },
+    value_density: Number(data?.value_density || 0),
+    risk: {
+      level: data?.risk?.level || 'unknown',
+      risk_score: Number(data?.risk?.risk_score ?? data?.risk?.score ?? 0),
+    },
+    ai_analysis: {
+      problem: data?.ai_analysis?.problem || '',
+      industry: data?.ai_analysis?.industry || '',
+      target_users: data?.ai_analysis?.target_users || '',
+      complexity: data?.ai_analysis?.complexity || '',
+    },
+    final_score: Number(data?.final_score || 0),
+    label: data?.label || 'Not Evaluated',
+  };
+}
 
 export default function CMVCReportModal({ ideaTitle, ideaDescription, onProceed, onEdit, onClose, viewOnly, reportData }: CMVCReportModalProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(!viewOnly);
   const [loadingStep, setLoadingStep] = useState(0);
   const [report, setReport] = useState<CMVCReport | null>(reportData || null);
+  const [analysisError, setAnalysisError] = useState('');
+  const authToken = useStore(state => state.authToken);
 
   // The 8-Step GCP Pipeline Steps to display during loading
   const pipelineSteps = [
@@ -61,21 +72,51 @@ export default function CMVCReportModal({ ideaTitle, ideaDescription, onProceed,
   useEffect(() => {
     if (viewOnly) return; 
 
-    // Simulate the Async Processing (Cloud Functions)
+    let cancelled = false;
     let currentStep = 0;
-    const interval = setInterval(() => {
-      currentStep++;
-      if (currentStep < pipelineSteps.length) {
-        setLoadingStep(currentStep);
-      } else {
-        clearInterval(interval);
-        setReport(generateMockReport(ideaTitle));
-        setIsAnalyzing(false);
-      }
-    }, 800); 
 
-    return () => clearInterval(interval);
-  }, [ideaTitle, viewOnly]);
+    const interval = setInterval(() => {
+      currentStep = Math.min(currentStep + 1, pipelineSteps.length - 1);
+      setLoadingStep(currentStep);
+    }, 800);
+
+    const runAnalysis = async () => {
+      try {
+        const result = await analyzeIdea(
+          {
+            title: ideaTitle,
+            description: ideaDescription,
+          },
+          authToken || undefined
+        );
+
+        if (!result?.success || !result?.data) {
+          throw new Error(result?.message || 'Analysis failed');
+        }
+
+        if (!cancelled) {
+          setReport(normalizeReport(result.data));
+          setAnalysisError('');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAnalysisError(error instanceof Error ? error.message : 'Failed to analyze idea');
+        }
+      } finally {
+        clearInterval(interval);
+        if (!cancelled) {
+          setIsAnalyzing(false);
+        }
+      }
+    };
+
+    runAnalysis();
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [authToken, ideaTitle, ideaDescription, viewOnly]);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
@@ -118,6 +159,37 @@ export default function CMVCReportModal({ ideaTitle, ideaDescription, onProceed,
                   </motion.div>
                 );
               })}
+            </div>
+          </motion.div>
+        )}
+
+        {!isAnalyzing && analysisError && (
+          <motion.div
+            key="analysis-error"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-3xl p-8 max-w-xl w-full text-center shadow-2xl border border-red-100"
+          >
+            <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Analysis failed</h2>
+            <p className="text-sm text-gray-600 mb-6">{analysisError}</p>
+            <div className="flex justify-center gap-3">
+              {onEdit && (
+                <button
+                  onClick={onEdit}
+                  className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold"
+                >
+                  Back to Edit
+                </button>
+              )}
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+                >
+                  Close
+                </button>
+              )}
             </div>
           </motion.div>
         )}
@@ -165,6 +237,17 @@ export default function CMVCReportModal({ ideaTitle, ideaDescription, onProceed,
                 <div>
                   <h3 className="text-lg font-bold text-green-800">Label: {report.label}</h3>
                   <p className="text-sm text-green-700">{report.problem_validation}</p>
+                </div>
+              </div>
+
+              {/* AI Analysis Summary */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm mb-6">
+                <h4 className="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wider">AI Analysis</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <p className="text-gray-700"><span className="font-semibold text-gray-900">Problem:</span> {report.ai_analysis?.problem || 'N/A'}</p>
+                  <p className="text-gray-700"><span className="font-semibold text-gray-900">Industry:</span> {report.ai_analysis?.industry || 'N/A'}</p>
+                  <p className="text-gray-700"><span className="font-semibold text-gray-900">Users:</span> {report.ai_analysis?.target_users || 'N/A'}</p>
+                  <p className="text-gray-700"><span className="font-semibold text-gray-900">Complexity:</span> {report.ai_analysis?.complexity || 'N/A'}</p>
                 </div>
               </div>
 

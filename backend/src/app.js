@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const { requireAuth } = require('./middleware/authMiddleware');
 
 const app = express();
 
@@ -15,12 +16,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Health route (VERY IMPORTANT for Cloud Run)
-app.get('/api/health', (req, res) => {
+app.get('/api/health', requireAuth, (req, res) => {
   res.send('Backend running');
 });
 
-const routes = require('./routes');
-app.use('/api', routes);
+const mainRouter = require('./routes');
+app.use('/api', mainRouter);
 
 // ⚠️ Disable error middleware temporarily
 // const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');

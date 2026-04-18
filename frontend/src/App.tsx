@@ -4,12 +4,17 @@ import { useStore } from './store';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard'; // <-- NEW: Admin Dashboard Import
 import CustomCursor from './components/CustomCursor';
 import Toast from './components/Toast';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useStore();
+  const { isAuthenticated, isAuthReady } = useStore();
   const location = useLocation();
+
+  if (!isAuthReady) {
+    return null;
+  }
   
   if (!isAuthenticated) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
@@ -19,9 +24,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useStore();
+  const { isAuthenticated, isAuthReady, user } = useStore(); // <-- Added user to check role
+
+  if (!isAuthReady) {
+    return null;
+  }
   
   if (isAuthenticated) {
+    // Make sure admins go to their specific dashboard if they hit the auth page
+    if (user?.role === 'admin') {
+      return <Navigate to="/admin" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -40,10 +53,12 @@ function ScrollToTop() {
 
 export default function App() {
   const [mounted, setMounted] = useState(false);
+  const initializeAuth = useStore(state => state.initializeAuth);
   
   useEffect(() => {
     setMounted(true);
-  }, []);
+    initializeAuth();
+  }, [initializeAuth]);
   
   if (!mounted) return null;
   
@@ -67,6 +82,15 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+          {/* --- NEW ADMIN DASHBOARD ROUTE --- */}
+          <Route 
+            path="/admin/*" 
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
               </ProtectedRoute>
             } 
           />

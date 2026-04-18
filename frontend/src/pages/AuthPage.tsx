@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FirebaseError } from 'firebase/app';
 import { useStore } from '../store';
 import { 
   Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle,
@@ -9,7 +10,7 @@ import {
 // Properly importing the 3D Canvas
 import Canvas3D from '../components/Canvas3D';
 
-type Role = 'owner' | 'builder';
+type Role = 'owner' | 'builder' | 'admin';
 type Profession = 'student' | 'freelancer' | 'professional';
 
 type AuthFormData = {
@@ -38,7 +39,7 @@ export default function AuthPage() {
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showGoogleSetup, setShowGoogleSetup] = useState(false);
-  
+
   // OTP States
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
@@ -58,6 +59,48 @@ export default function AuthPage() {
     city: '',
     state: ''
   });
+
+  const API_BASE_URL = 'https://collabmind-backend-995242116294.asia-south1.run.app';
+
+  const getFirebaseLoginErrorMessage = (error: unknown) => {
+    if (error instanceof FirebaseError) {
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        return 'Incorrect password. Please try again.';
+      }
+
+      if (error.code === 'auth/user-not-found') {
+        return 'No account found with this email.';
+      }
+
+      if (error.code === 'auth/invalid-email') {
+        return 'Please enter a valid email address.';
+      }
+
+      if (error.code === 'auth/too-many-requests') {
+        return 'Too many login attempts. Please try again later.';
+      }
+    }
+
+    return 'Unable to sign in right now. Please try again.';
+  };
+
+  const getResetPasswordErrorMessage = (error: unknown) => {
+    if (error instanceof FirebaseError) {
+      if (error.code === 'auth/user-not-found') {
+        return 'No account found with this email address.';
+      }
+
+      if (error.code === 'auth/network-request-failed') {
+        return 'Network issue detected. Please check your connection and try again.';
+      }
+
+      if (error.code === 'auth/invalid-email') {
+        return 'Please enter a valid email address.';
+      }
+    }
+
+    return 'Failed to send reset email. Please try again.';
+  };
 
   useEffect(() => {
     const modeParam = searchParams.get('mode');
@@ -85,16 +128,47 @@ export default function AuthPage() {
     setLoading(true);
     setError('');
     
+    // --- ADMIN INTERCEPT --- [cite: 10, 12]
+    if (formData.email === 'fazil@collabmind.com' && formData.password === 'fazil123') {
+      useStore.setState({
+        user: {
+          id: 'admin-fazil',
+          email: 'fazil@collabmind.com',
+          displayName: 'Fazil',
+          role: 'admin',
+          isVerified: true,
+          membership: 'premium',
+          joinDate: new Date().toISOString(),
+          problemsPosted: 0,
+          activeProjects: 0,
+          completedProjects: 0,
+          trustScore: 100,
+          city: 'Admin HQ',
+          state: 'Global'
+        }
+      });
+      addNotification('Welcome Admin Fazil!', 'success');
+      navigate('/admin'); // Redirect to the new admin route [cite: 10]
+      setLoading(false);
+      return; 
+    }
+    // --- END ADMIN INTERCEPT ---
+
     try {
       const result = await login(formData.email, formData.password);
       if (result) {
-        addNotification('Welcome back!', 'success');
-        navigate('/dashboard');
-      } else {
-        setError('Invalid credentials. Use demo@collabmind.com / demo123');
+        // If an admin somehow logs in through standard firebase (if created there), route them correctly
+        const currentUser = useStore.getState().user;
+        if (currentUser?.role === 'admin') {
+          addNotification('Welcome Admin!', 'success');
+          navigate('/admin');
+        } else {
+          addNotification('Welcome back!', 'success');
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError(getFirebaseLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -108,7 +182,10 @@ export default function AuthPage() {
       const result = await loginWithGoogle();
       if (result) {
         const currentUser = useStore.getState().user;
-        if (currentUser && (!currentUser.city || !currentUser.role)) {
+        if (currentUser?.role === 'admin') {
+          addNotification('Welcome Admin!', 'success');
+          navigate('/admin');
+        } else if (currentUser && (!currentUser.city || !currentUser.role)) {
           setShowGoogleSetup(true);
         } else if (currentUser) {
           addNotification('Welcome back!', 'success');
@@ -120,7 +197,7 @@ export default function AuthPage() {
         setError('Google sign-in failed. Please try again.');
       }
     } catch (err) {
-      setError('An error occurred with Google sign-in.');
+      setError(err instanceof Error ? err.message : 'An error occurred with Google sign-in.');
     } finally {
       setLoading(false);
     }
@@ -162,14 +239,15 @@ export default function AuthPage() {
     setLoading(true);
     setError('');
 
-    const API_BASE_URL = "https://collabmind-backend-995242116294.asia-south1.run.app";
-    const OTP_ENDPOINT = new URL("/api/auth/send-otp", API_BASE_URL).toString();
+    const OTP_ENDPOINT = new URL('/api/auth/send-otp', API_BASE_URL).toString();
+    const token = localStorage.getItem('firebaseIdToken') || localStorage.getItem('authToken');
 
     try {
       const res = await fetch(OTP_ENDPOINT, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ email: formData.email }),
       });
@@ -188,6 +266,8 @@ export default function AuthPage() {
       }
 
       setOtpSent(true);
+      setOtp('');
+      setIsEmailVerified(false);
       addNotification('OTP sent to your email!', 'info');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.');
@@ -196,14 +276,55 @@ export default function AuthPage() {
     }
   };
 
-  const handleVerifyOtp = () => {
-    if (otp === '000000') {
+  const handleVerifyOtp = async () => {
+    if (!formData.email) {
+      setError('Please enter your email address first.');
+      return;
+    }
+
+    if (otp.length !== 6) {
+      setError('Please enter the 6-digit OTP.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    const VERIFY_ENDPOINT = new URL('/api/auth/verify-otp', API_BASE_URL).toString();
+    const token = localStorage.getItem('firebaseIdToken') || localStorage.getItem('authToken');
+
+    try {
+      const res = await fetch(VERIFY_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ email: formData.email, otp }),
+      });
+
+      if (!res.ok) {
+        let message = 'Invalid OTP. Please try again.';
+        try {
+          const data = await res.json();
+          if (data && typeof data.message === 'string') {
+            message = data.message;
+          }
+        } catch {
+          // Ignore JSON parse errors and use the default message.
+        }
+        throw new Error(message);
+      }
+
       setIsEmailVerified(true);
-      setOtpSent(false); // Hide the OTP field once verified
+      setOtpSent(false);
+      setOtp('');
       setError('');
       addNotification('Email verified successfully!', 'success');
-    } else {
-      setError('Invalid OTP. Please try again or use 000000 for testing.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -218,7 +339,7 @@ export default function AuthPage() {
       setLoading(false);
       return;
     }
-    
+
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
       setLoading(false);
@@ -250,7 +371,7 @@ export default function AuthPage() {
         setError('Registration failed. Please try again.');
       }
     } catch (err) {
-      setError('An error occurred during registration.');
+      setError(err instanceof Error ? err.message : 'An error occurred during registration.');
     } finally {
       setLoading(false);
     }
@@ -263,14 +384,10 @@ export default function AuthPage() {
     setSuccess('');
     
     try {
-      const result = await resetPassword(formData.email);
-      if (result) {
-        setSuccess('Password reset link sent to your email!');
-      } else {
-        setError('Failed to send reset email. Please try again.');
-      }
+      await resetPassword(formData.email);
+      setSuccess('Password reset link sent to your email!');
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError(getResetPasswordErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -608,18 +725,17 @@ export default function AuthPage() {
                           value={otp}
                           onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                           className="flex-1 px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 tracking-[0.5em] font-mono text-center text-lg placeholder-gray-300"
-                          placeholder="000000"
+                          placeholder="Enter code"
                         />
                         <button
                           type="button"
                           onClick={handleVerifyOtp}
-                          disabled={otp.length !== 6}
+                          disabled={otp.length !== 6 || loading}
                           className="px-6 py-3 bg-gray-900 hover:bg-black text-white font-medium rounded-xl transition-colors disabled:opacity-50 cursor-hover"
                         >
                           Verify
                         </button>
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">Please use <span className="font-bold">000000</span> for testing.</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
