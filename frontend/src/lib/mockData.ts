@@ -1,41 +1,10 @@
-import type { User } from '../features/auth/types';
 import type { Problem } from '../features/problems/types';
 import type { CollaborationRequest } from '../features/projects/types';
 import type { ChatMessage } from '../features/chat/types';
 import type { Feedback, Certificate } from '../features/user/types';
 
-export const mockUsers: User[] = [
-  {
-    id: 'user1',
-    email: 'demo@collabmind.com',
-    displayName: 'Alex Chen',
-    bio: 'Passionate about solving real-world problems through technology. Building the future, one project at a time.',
-    skills: ['React', 'Node.js', 'UI/UX', 'Python'],
-    role: 'owner',
-    isVerified: true,
-    membership: 'premium',
-    joinDate: '2024-01-15',
-    problemsPosted: 12,
-    activeProjects: 3,
-    completedProjects: 8,
-    trustScore: 94
-  },
-  {
-    id: 'user2',
-    email: 'sarah@example.com',
-    displayName: 'Sarah Johnson',
-    bio: 'Full-stack developer and problem solver. Love building products that make a difference.',
-    skills: ['React', 'TypeScript', 'AWS', 'PostgreSQL'],
-    role: 'builder',
-    isVerified: true,
-    membership: 'free',
-    joinDate: '2024-02-20',
-    problemsPosted: 2,
-    activeProjects: 2,
-    completedProjects: 5,
-    trustScore: 87
-  }
-];
+
+  
 
 export const mockProblems: Problem[] = [
   {
