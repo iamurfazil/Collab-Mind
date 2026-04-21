@@ -1,111 +1,116 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Collab Mind - Connect Problems with Builders</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/collabmindbg.jpeg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
-              'outfit': ['Outfit', 'sans-serif'],
-              'mono': ['JetBrains Mono', 'monospace'],
+              outfit: ["Outfit", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"],
             },
             colors: {
-              'primary': {
-                50: '#FFF7ED',
-                100: '#FFEDD5',
-                200: '#FED7AA',
-                300: '#FDBA74',
-                400: '#FB923C',
-                500: '#F97316',
-                600: '#EA580C',
-                700: '#C2410C',
-                800: '#9A3412',
-                900: '#7C2D12',
+              primary: {
+                50: "#FFF7ED",
+                100: "#FFEDD5",
+                200: "#FED7AA",
+                300: "#FDBA74",
+                400: "#FB923C",
+                500: "#F97316",
+                600: "#EA580C",
+                700: "#C2410C",
+                800: "#9A3412",
+                900: "#7C2D12",
               },
-              'accent': {
-                50: '#FFFBEB',
-                100: '#FEF3C7',
-                200: '#FDE68A',
-                300: '#FCD34D',
-                400: '#FBBF24',
-                500: '#F59E0B',
-                600: '#D97706',
-                700: '#B45309',
-                800: '#92400E',
-                900: '#78350F',
+              accent: {
+                50: "#FFFBEB",
+                100: "#FEF3C7",
+                200: "#FDE68A",
+                300: "#FCD34D",
+                400: "#FBBF24",
+                500: "#F59E0B",
+                600: "#D97706",
+                700: "#B45309",
+                800: "#92400E",
+                900: "#78350F",
               },
-              'titanium': {
-                50: '#F9FAFB',
-                100: '#F3F4F6',
-                200: '#E5E7EB',
-                300: '#D1D5DB',
-                400: '#9CA3AF',
-                500: '#6B7280',
-                600: '#4B5563',
-                700: '#374151',
-                800: '#1F2937',
-                900: '#111827',
-                950: '#030712',
+              titanium: {
+                50: "#F9FAFB",
+                100: "#F3F4F6",
+                200: "#E5E7EB",
+                300: "#D1D5DB",
+                400: "#9CA3AF",
+                500: "#6B7280",
+                600: "#4B5563",
+                700: "#374151",
+                800: "#1F2937",
+                900: "#111827",
+                950: "#030712",
               },
-              'copper': {
-                400: '#FB923C',
-                500: '#F97316',
-                600: '#EA580C',
+              copper: {
+                400: "#FB923C",
+                500: "#F97316",
+                600: "#EA580C",
               },
-              'bg': {
-                primary: '#F8FAFC',
-                secondary: '#FFFFFF',
-                tertiary: '#F1F5F9',
+              bg: {
+                primary: "#F8FAFC",
+                secondary: "#FFFFFF",
+                tertiary: "#F1F5F9",
               },
-              'text': {
-                primary: '#111827',
-                secondary: '#6B7280',
-                muted: '#9CA3AF',
+              text: {
+                primary: "#111827",
+                secondary: "#6B7280",
+                muted: "#9CA3AF",
               },
-              'glass': {
-                DEFAULT: 'rgba(255, 255, 255, 0.8)',
-                light: 'rgba(255, 255, 255, 0.6)',
-              }
+              glass: {
+                DEFAULT: "rgba(255, 255, 255, 0.8)",
+                light: "rgba(255, 255, 255, 0.6)",
+              },
             },
             animation: {
-              'float': 'float 6s ease-in-out infinite',
-              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'glow': 'glow 2s ease-in-out infinite alternate',
-              'gradient': 'gradient 8s ease infinite',
-              'shimmer': 'shimmer 2s linear infinite',
+              float: "float 6s ease-in-out infinite",
+              "pulse-slow": "pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+              glow: "glow 2s ease-in-out infinite alternate",
+              gradient: "gradient 8s ease infinite",
+              shimmer: "shimmer 2s linear infinite",
             },
             keyframes: {
               float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-20px)' },
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-20px)" },
               },
               glow: {
-                '0%': { boxShadow: '0 0 20px rgba(249, 115, 22, 0.3)' },
-                '100%': { boxShadow: '0 0 40px rgba(251, 146, 60, 0.5)' },
+                "0%": { boxShadow: "0 0 20px rgba(249, 115, 22, 0.3)" },
+                "100%": { boxShadow: "0 0 40px rgba(251, 146, 60, 0.5)" },
               },
               gradient: {
-                '0%, 100%': { backgroundPosition: '0% 50%' },
-                '50%': { backgroundPosition: '100% 50%' },
+                "0%, 100%": { backgroundPosition: "0% 50%" },
+                "50%": { backgroundPosition: "100% 50%" },
               },
               shimmer: {
-                '0%': { transform: 'translateX(-100%)' },
-                '100%': { transform: 'translateX(100%)' },
-              }
+                "0%": { transform: "translateX(-100%)" },
+                "100%": { transform: "translateX(100%)" },
+              },
             },
             backgroundImage: {
-              'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-              'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-            }
-          }
-        }
-      }
+              "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+              "gradient-conic":
+                "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+            },
+          },
+        },
+      };
     </script>
   </head>
   <body class="font-outfit overflow-x-hidden bg-[#F8FAFC]">

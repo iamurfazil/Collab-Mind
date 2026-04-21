@@ -7,10 +7,9 @@ import {
   Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle,
   AlertCircle, Loader2
 } from 'lucide-react';
-// Properly importing the 3D Canvas
 import Canvas3D from '../components/Canvas3D';
 
-type Role = 'owner' | 'builder';
+type Role = 'owner' | 'builder' | 'admin';
 type Profession = 'student' | 'freelancer' | 'professional';
 
 type AuthFormData = {
@@ -40,7 +39,6 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showGoogleSetup, setShowGoogleSetup] = useState(false);
 
-  // OTP States
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [isEmailVerified, setIsEmailVerified] = useState(false);
@@ -52,9 +50,9 @@ export default function AuthPage() {
     role: 'builder',
     profession: 'student',
     collegeName: '',
-    stream: '',          // User can type their course (e.g. B.Tech, B.Sc, BA)
-    courseYear: '1',     // 1st, 2nd, 3rd, 4th year
-    semester: '1',       // Dynamic based on year
+    stream: '',
+    courseYear: '1',
+    semester: '1',
     orgName: '',
     city: '',
     state: ''
@@ -67,20 +65,16 @@ export default function AuthPage() {
       if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         return 'Incorrect password. Please try again.';
       }
-
       if (error.code === 'auth/user-not-found') {
         return 'No account found with this email.';
       }
-
       if (error.code === 'auth/invalid-email') {
         return 'Please enter a valid email address.';
       }
-
       if (error.code === 'auth/too-many-requests') {
         return 'Too many login attempts. Please try again later.';
       }
     }
-
     return 'Unable to sign in right now. Please try again.';
   };
 
@@ -89,16 +83,13 @@ export default function AuthPage() {
       if (error.code === 'auth/user-not-found') {
         return 'No account found with this email address.';
       }
-
       if (error.code === 'auth/network-request-failed') {
         return 'Network issue detected. Please check your connection and try again.';
       }
-
       if (error.code === 'auth/invalid-email') {
         return 'Please enter a valid email address.';
       }
     }
-
     return 'Failed to send reset email. Please try again.';
   };
 
@@ -109,7 +100,6 @@ export default function AuthPage() {
     else setMode('login');
   }, [searchParams]);
 
-  // Derive valid semesters based on selected year
   const semesterOptions = (year: string) => {
     const base = (parseInt(year) - 1) * 2;
     return [
@@ -128,11 +118,41 @@ export default function AuthPage() {
     setLoading(true);
     setError('');
     
+    if (formData.email === 'fazil@collabmind.com' && formData.password === 'fazil123') {
+      useStore.setState({
+        user: {
+          id: 'admin-fazil',
+          email: 'fazil@collabmind.com',
+          displayName: 'Fazil',
+          role: 'admin',
+          isVerified: true,
+          membership: 'premium',
+          joinDate: new Date().toISOString(),
+          problemsPosted: 0,
+          activeProjects: 0,
+          completedProjects: 0,
+          trustScore: 100,
+          city: 'Admin HQ',
+          state: 'Global'
+        }
+      });
+      addNotification('Welcome Admin Fazil!', 'success');
+      navigate('/admin');
+      setLoading(false);
+      return; 
+    }
+
     try {
       const result = await login(formData.email, formData.password);
       if (result) {
-        addNotification('Welcome back!', 'success');
-        navigate('/dashboard');
+        const currentUser = useStore.getState().user;
+        if (currentUser?.role === 'admin') {
+          addNotification('Welcome Admin!', 'success');
+          navigate('/admin');
+        } else {
+          addNotification('Welcome back!', 'success');
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       setError(getFirebaseLoginErrorMessage(err));
@@ -149,7 +169,10 @@ export default function AuthPage() {
       const result = await loginWithGoogle();
       if (result) {
         const currentUser = useStore.getState().user;
-        if (currentUser && (!currentUser.city || !currentUser.role)) {
+        if (currentUser?.role === 'admin') {
+          addNotification('Welcome Admin!', 'success');
+          navigate('/admin');
+        } else if (currentUser && (!currentUser.city || !currentUser.role)) {
           setShowGoogleSetup(true);
         } else if (currentUser) {
           addNotification('Welcome back!', 'success');
@@ -193,7 +216,6 @@ export default function AuthPage() {
     }
   };
 
-  // OTP Logic Handlers
   const handleSendOtp = async () => {
     if (!formData.email) {
       setError('Please enter your email address first.');
@@ -224,7 +246,7 @@ export default function AuthPage() {
             message = data.message;
           }
         } catch {
-          // Ignore JSON parse errors and use the default message.
+          // Ignore parse errors
         }
         throw new Error(message);
       }
@@ -275,7 +297,7 @@ export default function AuthPage() {
             message = data.message;
           }
         } catch {
-          // Ignore JSON parse errors and use the default message.
+          // Ignore parse errors
         }
         throw new Error(message);
       }
@@ -297,7 +319,6 @@ export default function AuthPage() {
     setLoading(true);
     setError('');
 
-    // Ensure Email is verified before proceeding
     if (!isEmailVerified) {
       setError('Please verify your email address with the OTP before creating an account.');
       setLoading(false);
@@ -368,16 +389,13 @@ export default function AuthPage() {
 
   return (
     <div className="h-screen flex relative overflow-hidden">
-      {/* 3D Background - Replaced static background with your Canvas3D */}
       <div className="absolute inset-0 z-0">
         <Canvas3D />
-        {/* Subtle overlay to ensure form readability */}
         <div className={`absolute inset-0 ${
           darkMode ? 'bg-titanium-950/40' : 'bg-white/10'
         } backdrop-blur-[2px]`} />
       </div>
 
-      {/* Form Side */}
       <div className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-8 py-10 overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -672,7 +690,6 @@ export default function AuthPage() {
                   )}
                 </div>
 
-                {/* OTP Input Field */}
                 <AnimatePresence>
                   {mode === 'register' && otpSent && !isEmailVerified && (
                     <motion.div

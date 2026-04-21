@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store';
 import Overview from '../components/dashboard/Overview';
+import AIProjectGenerator from '../components/dashboard/AIProjectGenerator';
 import MyIdeas from '../components/dashboard/MyIdeas';
 import BrowseIdeas from '../components/dashboard/BrowseIdeas';
 import Requests from '../components/dashboard/Requests';
@@ -17,11 +18,12 @@ import ProjectWorkspace from '../components/dashboard/ProjectWorkspace';
 import { 
   LayoutDashboard, Lightbulb, Users, MessageSquare, FileText, 
   Award, Settings as SettingsIcon, Menu, X, LogOut, ChevronDown,
-  Zap, User, Bot
+  Zap, User, Sparkles, Bot
 } from 'lucide-react';
 
 const navItems = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/dashboard' },
+  { id: 'ai-generator', label: 'AI Generator', icon: Sparkles, path: '/dashboard/ai-generator' },
   { id: 'my-ideas', label: 'My Ideas', icon: Lightbulb, path: '/dashboard/my-ideas' },
   { id: 'browse-ideas', label: 'Problem Marketplace', icon: Users, path: '/dashboard/browse-ideas' },
   { id: 'requests', label: 'Requests', icon: MessageSquare, path: '/dashboard/requests' },
@@ -44,7 +46,9 @@ export default function Dashboard() {
 
   const filteredNavItems = navItems.filter(item => {
     if (item.id === "browse-ideas" && user?.role === "owner") return false;
+    if (item.id === "my-ideas" && user?.role === "builder") return false;
     if (item.id === "certificates" && user?.role === "owner") return false;
+    if (item.id === "ai-generator" && user?.role === "builder") return false;
     return true;
   });
 
@@ -253,6 +257,7 @@ export default function Dashboard() {
             >
               <Routes>
                 <Route index element={<Overview />} />
+                <Route path="ai-generator" element={<AIProjectGenerator />} />
                 <Route path="my-ideas" element={<MyIdeas />} />
                 <Route path="browse-ideas" element={<BrowseIdeas />} />
                 <Route path="current-projects" element={<CurrentProjects />} />
