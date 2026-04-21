@@ -23,6 +23,44 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isAuthReady, user } = useStore();
+  const location = useLocation();
+
+  if (!isAuthReady) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  if (user?.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function UserDashboardRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isAuthReady, user } = useStore();
+  const location = useLocation();
+
+  if (!isAuthReady) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isAuthReady, user } = useStore(); // <-- Added user to check role
 
@@ -80,18 +118,18 @@ export default function App() {
           <Route 
             path="/dashboard/*" 
             element={
-              <ProtectedRoute>
+              <UserDashboardRoute>
                 <Dashboard />
-              </ProtectedRoute>
+              </UserDashboardRoute>
             } 
           />
           {/* --- NEW ADMIN DASHBOARD ROUTE --- */}
           <Route 
             path="/admin/*" 
             element={
-              <ProtectedRoute>
+              <AdminOnlyRoute>
                 <AdminDashboard />
-              </ProtectedRoute>
+              </AdminOnlyRoute>
             } 
           />
         </Routes>

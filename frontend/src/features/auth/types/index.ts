@@ -6,7 +6,7 @@ export interface User {
   bio: string;
   skills: string[];
   avatar?: string;
-  role: 'owner' | 'builder';
+  role: 'owner' | 'builder' | 'admin';
   profession?: 'student' | 'freelancer' | 'professional';
   collegeName?: string;
   stream?: string;

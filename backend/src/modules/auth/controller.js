@@ -2,7 +2,6 @@ const { saveUser } = require('./userService');
 
 async function me(req, res) {
   try {
-    console.log('REQ.USER:', req.user);
     const user = await saveUser({
       ...req.user,
       ...req.body,

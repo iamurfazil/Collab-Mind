@@ -21,7 +21,7 @@ interface User {
   bio: string;
   skills: string[];
   avatar?: string;
-  role: 'owner' | 'builder';
+  role: 'owner' | 'builder' | 'admin';
   profession?: 'student' | 'freelancer' | 'professional';
   collegeName?: string;
   stream?: string;
@@ -135,7 +135,7 @@ interface AppState {
   login: (email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
   logout: () => void;
-  register: (email: string, password: string, displayName: string, role: 'owner' | 'builder') => Promise<boolean>;
+  register: (email: string, password: string, displayName: string, role: 'owner' | 'builder' | 'admin') => Promise<boolean>;
   resetPassword: (email: string) => Promise<boolean>;
   updateUser: (updates: Partial<User>) => void;
   deleteAccount: () => void;
@@ -174,7 +174,9 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const BACKEND_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'https://collabmind-backend-995242116294.asia-south1.run.app';
+  (import.meta.env.DEV
+    ? 'http://localhost:5000'
+    : 'https://collabmind-backend-995242116294.asia-south1.run.app');
 const FIREBASE_TOKEN_KEY = 'firebaseIdToken';
 
 function setStoredToken(token: string | null) {
@@ -188,7 +190,7 @@ function setStoredToken(token: string | null) {
   localStorage.removeItem('authToken');
 }
 
-function mapFirebaseUserToAppUser(firebaseUser: FirebaseUser, role: 'owner' | 'builder' = 'builder'): User {
+function mapFirebaseUserToAppUser(firebaseUser: FirebaseUser, role: 'owner' | 'builder' | 'admin' = 'builder'): User {
   return {
     id: firebaseUser.uid,
     uid: firebaseUser.uid,
@@ -207,8 +209,53 @@ function mapFirebaseUserToAppUser(firebaseUser: FirebaseUser, role: 'owner' | 'b
   };
 }
 
-async function syncAuthenticatedUser(firebaseUser: FirebaseUser): Promise<string> {
-  const token = await firebaseUser.getIdToken();
+type SyncedUser = {
+  uid: string;
+  email?: string | null;
+  displayName?: string | null;
+  role?: 'owner' | 'builder' | 'admin';
+  city?: string | null;
+  state?: string | null;
+};
+
+function resolveRoleWithFallback(
+  syncedRole?: 'owner' | 'builder' | 'admin',
+  claimRole?: unknown,
+): 'owner' | 'builder' | 'admin' {
+  if (syncedRole === 'owner' || syncedRole === 'builder' || syncedRole === 'admin') {
+    return syncedRole;
+  }
+
+  if (claimRole === 'owner' || claimRole === 'builder' || claimRole === 'admin') {
+    return claimRole;
+  }
+
+  return 'builder';
+}
+
+function buildUserFromBackend(
+  firebaseUser: FirebaseUser,
+  syncedUser?: SyncedUser | null,
+  claimRole?: unknown,
+): User {
+  const role = resolveRoleWithFallback(syncedUser?.role, claimRole);
+
+  return {
+    ...mapFirebaseUserToAppUser(firebaseUser, role),
+    email: syncedUser?.email || firebaseUser.email || '',
+    displayName: syncedUser?.displayName || firebaseUser.displayName || firebaseUser.email || 'User',
+    city: syncedUser?.city || '',
+    state: syncedUser?.state || '',
+  };
+}
+
+async function syncAuthenticatedUser(
+  firebaseUser: FirebaseUser,
+  extraPayload: Record<string, unknown> = {},
+): Promise<{ token: string; user: SyncedUser | null; claimRole?: unknown }> {
+  const token = await firebaseUser.getIdToken(true);
+  const tokenResult = await firebaseUser.getIdTokenResult();
+  const claimRole = tokenResult?.claims?.role;
 
   try {
     const response = await fetch(new URL('/api/auth/me', BACKEND_BASE_URL).toString(), {
@@ -221,13 +268,14 @@ async function syncAuthenticatedUser(firebaseUser: FirebaseUser): Promise<string
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: firebaseUser.displayName,
+        ...extraPayload,
       }),
     });
 
     if (!response.ok) {
       if (response.status === 404) {
         console.warn('Auth sync endpoint /api/auth/me not found. Continuing with Firebase-only auth.');
-        return token;
+        return { token, user: null, claimRole };
       }
 
       let message = 'Failed to save user profile';
@@ -242,16 +290,17 @@ async function syncAuthenticatedUser(firebaseUser: FirebaseUser): Promise<string
 
       throw new Error(message);
     }
+
+    const payload = await parseJsonSafe(response);
+    return { token, user: payload?.data || null, claimRole };
   } catch (error) {
     if (error instanceof TypeError) {
       console.warn('Auth profile sync unreachable. Continuing with Firebase-only auth.');
-      return token;
+      return { token, user: null, claimRole };
     }
 
     throw error;
   }
-
-  return token;
 }
 
 async function parseJsonSafe(response: Response) {
@@ -511,9 +560,8 @@ export const useStore = create<AppState>()(
           }
 
           try {
-            const token = await syncAuthenticatedUser(firebaseUser);
-            const existingRole = get().user?.role;
-            const user = mapFirebaseUserToAppUser(firebaseUser, existingRole || 'builder');
+            const { token, user: syncedUser, claimRole } = await syncAuthenticatedUser(firebaseUser);
+            const user = buildUserFromBackend(firebaseUser, syncedUser, claimRole);
             const syncedIdeas = await fetchIdeasFromBackend(token);
 
             setStoredToken(token);
@@ -533,12 +581,8 @@ export const useStore = create<AppState>()(
       
       login: async (email: string, password: string) => {
         const credentials = await signInWithEmailAndPassword(auth, email, password);
-        const token = await syncAuthenticatedUser(credentials.user);
-
-        const existingRole = get().user?.role;
-        const user = mapFirebaseUserToAppUser(credentials.user, existingRole || 'builder');
-        console.log('USER:', user);
-        console.log('TOKEN:', token);
+        const { token, user: syncedUser, claimRole } = await syncAuthenticatedUser(credentials.user);
+        const user = buildUserFromBackend(credentials.user, syncedUser, claimRole);
 
         const syncedIdeas = await fetchIdeasFromBackend(token);
         setStoredToken(token);
@@ -548,12 +592,8 @@ export const useStore = create<AppState>()(
       
       loginWithGoogle: async () => {
         const result = await signInWithPopup(auth, new GoogleAuthProvider());
-        const token = await syncAuthenticatedUser(result.user);
-
-        const existingRole = get().user?.role;
-        const user = mapFirebaseUserToAppUser(result.user, existingRole || 'builder');
-        console.log('USER:', user);
-        console.log('TOKEN:', token);
+        const { token, user: syncedUser, claimRole } = await syncAuthenticatedUser(result.user);
+        const user = buildUserFromBackend(result.user, syncedUser, claimRole);
 
         const syncedIdeas = await fetchIdeasFromBackend(token);
         setStoredToken(token);
@@ -567,7 +607,7 @@ export const useStore = create<AppState>()(
         set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, activeSection: 'overview', ideas: [] });
       },
       
-      register: async (email: string, password: string, displayName: string, role: 'owner' | 'builder') => {
+      register: async (email: string, password: string, displayName: string, role: 'owner' | 'builder' | 'admin') => {
         const credentials = await createUserWithEmailAndPassword(auth, email, password);
 
         if (displayName.trim()) {
@@ -575,11 +615,8 @@ export const useStore = create<AppState>()(
         }
 
         const currentUser = auth.currentUser || credentials.user;
-        const token = await syncAuthenticatedUser(currentUser);
-
-        const user = mapFirebaseUserToAppUser(currentUser, role);
-        console.log('USER:', user);
-        console.log('TOKEN:', token);
+        const { token, user: syncedUser, claimRole } = await syncAuthenticatedUser(currentUser, { role });
+        const user = buildUserFromBackend(currentUser, syncedUser || { uid: currentUser.uid, role }, claimRole);
         const syncedIdeas = await fetchIdeasFromBackend(token);
         setStoredToken(token);
         set({ user, authToken: token, isAuthenticated: true, isAuthReady: true, ideas: syncedIdeas ?? get().ideas });

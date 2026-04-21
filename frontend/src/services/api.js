@@ -118,3 +118,35 @@ export async function askNexusAI(data, token) {
     body: JSON.stringify(data),
   });
 }
+
+export async function getAdminDashboard(token) {
+  const authToken = resolveAuthToken(token);
+
+  if (!authToken) {
+    throw new Error('Missing auth token. Please sign in again.');
+  }
+
+  return requestWithFallback('/api/admin/dashboard', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+    },
+  });
+}
+
+export async function updateAdminUserRole(userId, role, token) {
+  const authToken = resolveAuthToken(token);
+
+  if (!authToken) {
+    throw new Error('Missing auth token. Please sign in again.');
+  }
+
+  return requestWithFallback(`/api/admin/users/${userId}/role`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify({ role }),
+  });
+}

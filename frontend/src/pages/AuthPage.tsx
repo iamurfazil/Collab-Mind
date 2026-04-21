@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Canvas3D from '../components/Canvas3D';
 
-type Role = 'owner' | 'builder' | 'admin';
+type Role = 'owner' | 'builder';
 type Profession = 'student' | 'freelancer' | 'professional';
 
 type AuthFormData = {
@@ -58,7 +58,11 @@ export default function AuthPage() {
     state: ''
   });
 
-  const API_BASE_URL = 'https://collabmind-backend-995242116294.asia-south1.run.app';
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.DEV
+      ? 'http://localhost:5000'
+      : 'https://collabmind-backend-995242116294.asia-south1.run.app');
 
   const getFirebaseLoginErrorMessage = (error: unknown) => {
     if (error instanceof FirebaseError) {
@@ -118,30 +122,6 @@ export default function AuthPage() {
     setLoading(true);
     setError('');
     
-    if (formData.email === 'fazil@collabmind.com' && formData.password === 'fazil123') {
-      useStore.setState({
-        user: {
-          id: 'admin-fazil',
-          email: 'fazil@collabmind.com',
-          displayName: 'Fazil',
-          role: 'admin',
-          isVerified: true,
-          membership: 'premium',
-          joinDate: new Date().toISOString(),
-          problemsPosted: 0,
-          activeProjects: 0,
-          completedProjects: 0,
-          trustScore: 100,
-          city: 'Admin HQ',
-          state: 'Global'
-        }
-      });
-      addNotification('Welcome Admin Fazil!', 'success');
-      navigate('/admin');
-      setLoading(false);
-      return; 
-    }
-
     try {
       const result = await login(formData.email, formData.password);
       if (result) {
