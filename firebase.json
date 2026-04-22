@@ -6,7 +6,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "collab mind/my-react-app/dist",
+    "public": "frontend/dist",
     "ignore": [
       "firebase.json",
       "**/.*",
