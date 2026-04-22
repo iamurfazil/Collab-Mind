@@ -21,6 +21,7 @@ import Settings from "../components/dashboard/Settings";
 import ProfileModal from "../components/ProfileModal";
 import CurrentProjects from "../components/dashboard/CurrentProjects";
 import ProjectWorkspace from "../components/dashboard/ProjectWorkspace";
+import Canvas3D from "../components/Canvas3D"; // Import the 3D component
 import {
   LayoutDashboard,
   Lightbulb,
@@ -100,7 +101,7 @@ const navItems = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, showProfileModal } = useStore();
+  const { user, logout, showProfileModal, darkMode } = useStore(); // Added darkMode from store
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [nexusFabOpen, setNexusFabOpen] = useState(false);
@@ -149,16 +150,24 @@ export default function Dashboard() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative overflow-hidden bg-gray-50">
+      {/* 3D Background Layer */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-40">
+        <Canvas3D />
+        <div className={`absolute inset-0 ${
+          darkMode ? 'bg-titanium-950/60' : 'bg-white/40'
+        } backdrop-blur-[1px]`} />
+      </div>
+
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex flex-col w-72 fixed inset-y-0 z-40 h-screen">
-        <div className="flex-1 flex flex-col bg-white border-r border-gray-200 overflow-hidden">
+        <div className="flex-1 flex flex-col bg-white/80 backdrop-blur-md border-r border-gray-200 overflow-hidden">
           <div className="flex items-center gap-3 px-6 py-6">
             <Link to="/" className="flex items-center gap-3 cursor-hover">
               <div className="h-10 flex items-center">
                 <img
                   src="/collabmindbg.jpeg"
-                  className="h-full object-contain"
+                  className="h-full object-contain rounded-lg shadow-sm"
                   alt="Logo"
                 />
               </div>
@@ -175,8 +184,8 @@ export default function Dashboard() {
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-hover ${
                   currentPath === item.path
-                    ? "bg-gradient-to-r from-orange-500/20 to-orange-400/20 text-orange-500"
-                    : "text-gray-500 hover:bg-orange-50"
+                    ? "bg-gradient-to-r from-orange-500/20 to-orange-400/20 text-orange-500 shadow-sm"
+                    : "text-gray-500 hover:bg-orange-50/50"
                 }`}
               >
                 <item.icon className="w-5 h-5" />
@@ -238,7 +247,7 @@ export default function Dashboard() {
 
       {/* Mobile Navigation */}
       <div
-        className={`lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 ${sidebarOpen ? "hidden" : ""}`}
+        className={`lg:hidden fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 ${sidebarOpen ? "hidden" : ""}`}
       >
         <div className="flex items-center justify-between px-4 h-16">
           <button
@@ -256,7 +265,7 @@ export default function Dashboard() {
             <div className="h-8 flex items-center">
               <img
                 src="/collabmindbg.jpeg"
-                className="h-full object-contain"
+                className="h-full object-contain rounded"
                 alt="Logo"
               />
             </div>
@@ -294,7 +303,7 @@ export default function Dashboard() {
                   <div className="h-10 flex items-center">
                     <img
                       src="/collabmindbg.jpeg"
-                      className="h-full object-contain"
+                      className="h-full object-contain rounded-lg shadow-sm"
                       alt="Logo"
                     />
                   </div>
@@ -343,9 +352,9 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      <main className="relative flex-1 lg:ml-72 pt-16 lg:pt-0 overflow-y-auto lg:overflow-hidden min-h-0">
-        <div className="pointer-events-none absolute -top-20 right-0 h-80 w-80 rounded-full bg-orange-200/30 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-10 h-72 w-72 rounded-full bg-orange-100/50 blur-3xl" />
+      <main className="relative z-10 flex-1 lg:ml-72 pt-16 lg:pt-0 overflow-y-auto lg:overflow-hidden min-h-0">
+        <div className="pointer-events-none absolute -top-20 right-0 h-80 w-80 rounded-full bg-orange-200/20 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-10 h-72 w-72 rounded-full bg-orange-100/30 blur-3xl" />
         <div className="relative p-6 lg:p-8 h-full">
           <AnimatePresence mode="wait">
             <motion.div
@@ -354,6 +363,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2 }}
+              className="relative z-10"
             >
               <Routes>
                 <Route index element={<Overview />} />
@@ -381,7 +391,7 @@ export default function Dashboard() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/25 z-50"
+              className="fixed inset-0 bg-black/25 z-50 backdrop-blur-sm"
               onClick={() => setNexusFabOpen(false)}
             />
             <motion.div

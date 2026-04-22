@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store';
 import { 
   X, MessageSquare, ShieldCheck, Calendar, BookOpen, GraduationCap,
-  Building2, Laptop
+  Building2, Laptop, Linkedin
 } from 'lucide-react';
 
 export default function ProfileModal() {
@@ -23,6 +23,15 @@ export default function ProfileModal() {
       '5': '5th Year',
     };
     return yearMap[year] || `${year} Year`;
+  };
+
+  const handleShareLinkedIn = () => {
+    const shareUrl = window.location.origin;
+    const shareText = encodeURIComponent(
+      `Check out my verified ${profileToView.role} ID on Collab-Mind! 🚀 ID: ${profileToView.id?.substring(0, 12).toUpperCase()}`
+    );
+    const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&text=${shareText}`;
+    window.open(linkedinUrl, '_blank');
   };
 
   const stats = [
@@ -190,9 +199,19 @@ export default function ProfileModal() {
               ))}
             </div>
 
-            {/* Action Button (Orange theme) */}
-            {!isOwnProfile && (
-              <div className="w-full mt-4">
+            {/* Action Buttons */}
+            <div className="w-full mt-4 space-y-3">
+              {isOwnProfile ? (
+                <motion.button
+                  onClick={handleShareLinkedIn}
+                  className="w-full py-2 bg-gradient-to-r from-orange-600 to-orange-500 text-white font-bold rounded-xl shadow-md cursor-hover flex items-center justify-center gap-2 transition-all hover:from-blue-700 hover:to-blue-600"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Linkedin className="w-5 h-5" />
+                  Share ID to LinkedIn
+                </motion.button>
+              ) : (
                 <motion.button
                   className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold rounded-xl shadow-md cursor-hover flex items-center justify-center gap-2 transition-all hover:from-orange-600 hover:to-orange-500"
                   whileHover={{ scale: 1.02 }}
@@ -201,8 +220,8 @@ export default function ProfileModal() {
                   <MessageSquare className="w-5 h-5" />
                   Send Message
                 </motion.button>
-              </div>
-            )}
+              )}
+            </div>
 
           </div>
         </motion.div>

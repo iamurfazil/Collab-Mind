@@ -140,7 +140,6 @@ export default function AuthPage() {
       setLoading(false);
     }
   };
-
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
@@ -802,11 +801,8 @@ export default function AuthPage() {
         </motion.div>
       </div>
 
-      {/* Visual Side - Upgraded with 3D Integration */}
-      <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden">
-        {/* Background depth for visual side */}
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent z-0" />
-        
+      {/* Visual Side - Upgraded with Opaque Background to block animations */}
+      <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden bg-white-500 z-20">
         <div className="relative z-10 text-center p-12">
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }} 
@@ -831,7 +827,7 @@ export default function AuthPage() {
             <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">
               Build the <span className="gradient-text">Future</span>
             </h2>
-            <p className="text-gray-600 max-w-md font-medium">
+            <p className="text-gray-900 max-w-md font-medium">
               Join thousands of problem owners and talented builders creating impact together.
             </p>
           </motion.div>
