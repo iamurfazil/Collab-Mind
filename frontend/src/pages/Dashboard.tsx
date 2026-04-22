@@ -1,37 +1,100 @@
-import { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useStore } from '../store';
-import Overview from '../components/dashboard/Overview';
-import AIProjectGenerator from '../components/dashboard/AIProjectGenerator';
-import MyIdeas from '../components/dashboard/MyIdeas';
-import BrowseIdeas from '../components/dashboard/BrowseIdeas';
-import Requests from '../components/dashboard/Requests';
-import Chat from '../components/dashboard/Chat';
-import NexusAI from '../components/dashboard/NexusAI';
-import Submissions from '../components/dashboard/Submissions';
-import Certificates from '../components/dashboard/Certificates';
-import Settings from '../components/dashboard/Settings';
-import ProfileModal from '../components/ProfileModal';
-import CurrentProjects from '../components/dashboard/CurrentProjects';
-import ProjectWorkspace from '../components/dashboard/ProjectWorkspace';
-import { 
-  LayoutDashboard, Lightbulb, Users, MessageSquare, FileText, 
-  Award, Settings as SettingsIcon, Menu, X, LogOut, ChevronDown,
-  Zap, User, Sparkles, Bot
-} from 'lucide-react';
+import { useState, useEffect } from "react";
+import {
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+  Link,
+} from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { useStore } from "../store";
+import Overview from "../components/dashboard/Overview";
+import AIProjectGenerator from "../components/dashboard/AIProjectGenerator";
+import MyIdeas from "../components/dashboard/MyIdeas";
+import BrowseIdeas from "../components/dashboard/BrowseIdeas";
+import Requests from "../components/dashboard/Requests";
+import Chat from "../components/dashboard/Chat";
+import NexusAI from "../components/dashboard/NexusAI";
+import Submissions from "../components/dashboard/Submissions";
+import Certificates from "../components/dashboard/Certificates";
+import Settings from "../components/dashboard/Settings";
+import ProfileModal from "../components/ProfileModal";
+import CurrentProjects from "../components/dashboard/CurrentProjects";
+import ProjectWorkspace from "../components/dashboard/ProjectWorkspace";
+import {
+  LayoutDashboard,
+  Lightbulb,
+  Users,
+  MessageSquare,
+  FileText,
+  Award,
+  Settings as SettingsIcon,
+  Menu,
+  X,
+  LogOut,
+  ChevronDown,
+  Zap,
+  User,
+  Sparkles,
+  Bot,
+} from "lucide-react";
 
 const navItems = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/dashboard' },
-  { id: 'ai-generator', label: 'AI Generator', icon: Sparkles, path: '/dashboard/ai-generator' },
-  { id: 'my-ideas', label: 'My Ideas', icon: Lightbulb, path: '/dashboard/my-ideas' },
-  { id: 'browse-ideas', label: 'Problem Marketplace', icon: Users, path: '/dashboard/browse-ideas' },
-  { id: 'requests', label: 'Requests', icon: MessageSquare, path: '/dashboard/requests' },
-  { id: 'chat', label: 'Chat', icon: MessageSquare, path: '/dashboard/chat' },
-  { id: 'current-projects', label: 'Current Projects', icon: Zap, path: '/dashboard/current-projects' },
-  { id: 'submissions', label: 'Submissions', icon: FileText, path: '/dashboard/submissions' },
-  { id: 'certificates', label: 'Certificates', icon: Award, path: '/dashboard/certificates' },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon, path: '/dashboard/settings' },
+  {
+    id: "overview",
+    label: "Overview",
+    icon: LayoutDashboard,
+    path: "/dashboard",
+  },
+  {
+    id: "ai-generator",
+    label: "AI Generator",
+    icon: Sparkles,
+    path: "/dashboard/ai-generator",
+  },
+  {
+    id: "my-ideas",
+    label: "My Ideas",
+    icon: Lightbulb,
+    path: "/dashboard/my-ideas",
+  },
+  {
+    id: "browse-ideas",
+    label: "Problem Marketplace",
+    icon: Users,
+    path: "/dashboard/browse-ideas",
+  },
+  {
+    id: "requests",
+    label: "Requests",
+    icon: MessageSquare,
+    path: "/dashboard/requests",
+  },
+  { id: "chat", label: "Chat", icon: MessageSquare, path: "/dashboard/chat" },
+  {
+    id: "current-projects",
+    label: "Current Projects",
+    icon: Zap,
+    path: "/dashboard/current-projects",
+  },
+  {
+    id: "submissions",
+    label: "Submissions",
+    icon: FileText,
+    path: "/dashboard/submissions",
+  },
+  {
+    id: "certificates",
+    label: "Certificates",
+    icon: Award,
+    path: "/dashboard/certificates",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: SettingsIcon,
+    path: "/dashboard/settings",
+  },
 ];
 
 export default function Dashboard() {
@@ -44,7 +107,7 @@ export default function Dashboard() {
 
   const currentPath = location.pathname;
 
-  const filteredNavItems = navItems.filter(item => {
+  const filteredNavItems = navItems.filter((item) => {
     if (item.id === "browse-ideas" && user?.role === "owner") return false;
     if (item.id === "my-ideas" && user?.role === "builder") return false;
     if (item.id === "certificates" && user?.role === "owner") return false;
@@ -54,7 +117,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/auth');
+      navigate("/auth");
     }
   }, [user, navigate]);
 
@@ -64,23 +127,23 @@ export default function Dashboard() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         setNexusFabOpen(false);
       }
     };
 
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
   };
 
   const goToProfile = () => {
     setProfileMenuOpen(false);
-    navigate('/dashboard/settings');
+    navigate("/dashboard/settings");
   };
 
   if (!user) return null;
@@ -88,26 +151,32 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen flex">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex flex-col w-72 fixed inset-y-0 z-40">
-        <div className="flex-1 flex flex-col bg-white border-r border-gray-200">
+      <aside className="hidden lg:flex flex-col w-72 fixed inset-y-0 z-40 h-screen">
+        <div className="flex-1 flex flex-col bg-white border-r border-gray-200 overflow-hidden">
           <div className="flex items-center gap-3 px-6 py-6">
             <Link to="/" className="flex items-center gap-3 cursor-hover">
               <div className="h-10 flex items-center">
-                <img src="/collabmindbg.jpeg" className="h-full object-contain" alt="Logo" />
+                <img
+                  src="/collabmindbg.jpeg"
+                  className="h-full object-contain"
+                  alt="Logo"
+                />
               </div>
-              <span className="text-xl font-bold gradient-text">Collab Mind</span>
+              <span className="text-xl font-bold gradient-text">
+                Collab Mind
+              </span>
             </Link>
           </div>
 
-          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto min-h-0">
             {filteredNavItems.map((item) => (
               <Link
                 key={item.id}
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-hover ${
                   currentPath === item.path
-                    ? 'bg-gradient-to-r from-orange-500/20 to-orange-400/20 text-orange-500'
-                    : 'text-gray-500 hover:bg-orange-50'
+                    ? "bg-gradient-to-r from-orange-500/20 to-orange-400/20 text-orange-500"
+                    : "text-gray-500 hover:bg-orange-50"
                 }`}
               >
                 <item.icon className="w-5 h-5" />
@@ -126,10 +195,16 @@ export default function Dashboard() {
                 {user.displayName.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 text-left">
-                <div className="font-medium text-gray-900 truncate">{user.displayName}</div>
-                <div className="text-sm text-gray-500">{user.role === 'owner' ? 'Problem Owner' : 'Builder'}</div>
+                <div className="font-medium text-gray-900 truncate">
+                  {user.displayName}
+                </div>
+                <div className="text-sm text-gray-500">
+                  {user.role === "owner" ? "Problem Owner" : "Builder"}
+                </div>
               </div>
-              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-4 h-4 text-gray-400 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             <AnimatePresence>
@@ -162,15 +237,28 @@ export default function Dashboard() {
       </aside>
 
       {/* Mobile Navigation */}
-      <div className={`lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 ${sidebarOpen ? 'hidden' : ''}`}>
+      <div
+        className={`lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 ${sidebarOpen ? "hidden" : ""}`}
+      >
         <div className="flex items-center justify-between px-4 h-16">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-lg hover:bg-gray-100 cursor-hover">
-            {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg hover:bg-gray-100 cursor-hover"
+          >
+            {sidebarOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
           </button>
-          
+
           <Link to="/" className="flex items-center gap-2">
             <div className="h-8 flex items-center">
-              <img src="/collabmindbg.jpeg" className="h-full object-contain" alt="Logo" />
+              <img
+                src="/collabmindbg.jpeg"
+                className="h-full object-contain"
+                alt="Logo"
+              />
             </div>
             <span className="font-bold gradient-text">Collab Mind</span>
           </Link>
@@ -189,22 +277,34 @@ export default function Dashboard() {
         {sidebarOpen && (
           <>
             <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="lg:hidden fixed inset-0 bg-black/20 z-40"
               onClick={() => setSidebarOpen(false)}
             />
             <motion.div
-              initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
-              className="lg:hidden fixed top-0 left-0 w-full max-w-xs h-[92vh] z-50 bg-white border-r border-gray-200 flex flex-col overflow-y-auto"
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              className="lg:hidden fixed top-0 left-0 w-full max-w-xs h-[92vh] z-50 bg-white border-r border-gray-200 flex flex-col overflow-hidden"
             >
               <div className="flex items-center justify-between px-4 py-6 border-b border-gray-200">
                 <Link to="/" className="flex items-center gap-3">
-                  <div className="h-10 flex items-center"><img src="/collabmindbg.jpeg" className="h-full object-contain" alt="Logo" /></div>
-                  <span className="text-xl font-bold gradient-text">Collab Mind</span>
+                  <div className="h-10 flex items-center">
+                    <img
+                      src="/collabmindbg.jpeg"
+                      className="h-full object-contain"
+                      alt="Logo"
+                    />
+                  </div>
+                  <span className="text-xl font-bold gradient-text">
+                    Collab Mind
+                  </span>
                 </Link>
               </div>
-              
-              <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
+
+              <nav className="p-4 space-y-1 flex-1 overflow-y-auto min-h-0">
                 {filteredNavItems.map((item) => (
                   <Link
                     key={item.id}
@@ -212,8 +312,8 @@ export default function Dashboard() {
                     onClick={() => setSidebarOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-hover ${
                       currentPath === item.path
-                        ? 'bg-gradient-to-r from-orange-500/20 to-orange-400/20 text-orange-500'
-                        : 'text-gray-500 hover:bg-orange-50'
+                        ? "bg-gradient-to-r from-orange-500/20 to-orange-400/20 text-orange-500"
+                        : "text-gray-500 hover:bg-orange-50"
                     }`}
                   >
                     <item.icon className="w-5 h-5" />
@@ -222,7 +322,7 @@ export default function Dashboard() {
                 ))}
               </nav>
 
-              <div className="mt-auto p-4 border-t border-gray-200 pb-10 space-y-2">
+              <div className="p-4 border-t border-gray-200 pb-10 space-y-2">
                 <button
                   onClick={goToProfile}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-orange-50 transition-colors"
@@ -243,10 +343,10 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      <main className="relative flex-1 lg:ml-72 pt-16 lg:pt-0 overflow-hidden">
+      <main className="relative flex-1 lg:ml-72 pt-16 lg:pt-0 overflow-y-auto lg:overflow-hidden min-h-0">
         <div className="pointer-events-none absolute -top-20 right-0 h-80 w-80 rounded-full bg-orange-200/30 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-10 h-72 w-72 rounded-full bg-orange-100/50 blur-3xl" />
-        <div className="relative p-6 lg:p-8">
+        <div className="relative p-6 lg:p-8 h-full">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentPath}

@@ -181,21 +181,35 @@ export default function LandingPage() {
       }
     }
   }, [location]);
-  
+
   const { feedbackList, addFeedback } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [feedbackForm, setFeedbackForm] = useState({ userName: '', email: '', category: 'general', message: '', contactPermission: false });
-  const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  
-  const approvedFeedback = feedbackList.filter(f => f.status === 'approved');
-  
+  const [feedbackForm, setFeedbackForm] = useState({
+    userName: "",
+    email: "",
+    category: "general",
+    message: "",
+    contactPermission: false,
+  });
+  const [feedbackStatus, setFeedbackStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+
+  const approvedFeedback = feedbackList.filter((f) => f.status === "approved");
+
   const handleFeedbackSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     try {
       addFeedback(feedbackForm);
-      setFeedbackStatus('success');
-      setFeedbackForm({ userName: '', email: '', category: 'general', message: '', contactPermission: false });
-      setTimeout(() => setFeedbackStatus('idle'), 3000);
+      setFeedbackStatus("success");
+      setFeedbackForm({
+        userName: "",
+        email: "",
+        category: "general",
+        message: "",
+        contactPermission: false,
+      });
+      setTimeout(() => setFeedbackStatus("idle"), 3000);
     } catch {
       setFeedbackStatus("error");
     }
@@ -228,10 +242,15 @@ export default function LandingPage() {
             </motion.div>
 
             <nav className="hidden md:flex items-center gap-8">
-              {['How It Works', 'Features', 'Pricing', 'Testimonials', 'About'].map((item) => (
+              {[
+                "How It Works",
+                "Features",
+                "Testimonials",
+                "About",
+              ].map((item) => (
                 <motion.a
                   key={item}
-                  href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
+                  href={`#${item.toLowerCase().replace(/\s+/g, "-")}`}
                   className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors cursor-hover"
                   whileHover={{ y: -2 }}
                 >
@@ -272,10 +291,15 @@ export default function LandingPage() {
             className="md:hidden glass border-t border-gray-200"
           >
             <div className="px-4 py-4 space-y-3">
-              {['How It Works', 'Features', 'Pricing', 'Testimonials', 'About'].map((item) => (
+              {[
+                "How It Works",
+                "Features",
+                "Testimonials",
+                "About",
+              ].map((item) => (
                 <a
                   key={item}
-                  href={`#${item.toLowerCase().replace(' ', '-')}`}
+                  href={`#${item.toLowerCase().replace(" ", "-")}`}
                   className="block py-2 text-gray-600"
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -505,117 +529,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-24 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="text-gray-900">Simple, </span>
-              <span className="gradient-text">Transparent Pricing</span>
-            </h2>
-            <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-              Start for free, upgrade when you need more power.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Free Plan */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="glass rounded-3xl p-8 border border-gray-200 flex flex-col"
-            >
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Free Plan</h3>
-              <div className="text-4xl font-black text-gray-900 mb-6">₹0<span className="text-lg text-gray-500 font-medium">/month</span></div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-start gap-3 text-gray-600">
-                  <CheckCircle className="w-5 h-5 text-orange-500 shrink-0" />
-                  <span>Basic idea validation</span>
-                </li>
-              </ul>
-              <Link to="/auth">
-                <button className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold rounded-xl btn-shine cursor-hover transition-transform hover:scale-[1.02] active:scale-[0.98]">
-                  Get Started
-                </button>
-              </Link>
-            </motion.div>
-
-            {/* Normal Plan */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="glass rounded-3xl p-8 border border-gray-200 flex flex-col"
-            >
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Normal Plan</h3>
-              <div className="text-4xl font-black text-gray-900 mb-6">₹79<span className="text-lg text-gray-500 font-medium">/month</span></div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-start gap-3 text-gray-600">
-                  <CheckCircle className="w-5 h-5 text-gray-400 shrink-0" />
-                  <span>Idea validation</span>
-                </li>
-                <li className="flex items-start gap-3 text-gray-600">
-                  <CheckCircle className="w-5 h-5 text-gray-400 shrink-0" />
-                  <span>Basic feedback and improvements</span>
-                </li>
-                <li className="flex items-start gap-3 text-gray-600">
-                  <CheckCircle className="w-5 h-5 text-gray-400 shrink-0" />
-                  <span>Limited usage</span>
-                </li>
-              </ul>
-              <button disabled className="w-full py-3 bg-gray-100 text-gray-400 font-bold rounded-xl cursor-not-allowed border border-gray-200 transition-colors">
-                Coming Soon
-              </button>
-            </motion.div>
-
-            {/* Premium Plan (Recommended) */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="glass rounded-3xl p-8 border-2 border-orange-400 relative flex flex-col shadow-xl shadow-orange-500/10 md:-translate-y-4"
-            >
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <span className="px-4 py-1 bg-gradient-to-r from-orange-500 to-orange-400 text-white text-sm font-bold uppercase tracking-wider rounded-full shadow-sm">
-                  Recommended
-                </span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2 mt-2">Premium Plan</h3>
-              <div className="text-4xl font-black text-gray-900 mb-6">₹249<span className="text-lg text-gray-500 font-medium">/month</span></div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-start gap-3 text-gray-600">
-                  <CheckCircle className="w-5 h-5 text-orange-500 shrink-0" />
-                  <span>Advanced idea analysis</span>
-                </li>
-                <li className="flex items-start gap-3 text-gray-600">
-                  <CheckCircle className="w-5 h-5 text-orange-500 shrink-0" />
-                  <span>Project roadmap</span>
-                </li>
-                <li className="flex items-start gap-3 text-gray-600">
-                  <CheckCircle className="w-5 h-5 text-orange-500 shrink-0" />
-                  <span>Patent guidance and references</span>
-                </li>
-                <li className="flex items-start gap-3 text-gray-600">
-                  <CheckCircle className="w-5 h-5 text-orange-500 shrink-0" />
-                  <span>Documentation support</span>
-                </li>
-              </ul>
-              <button disabled className="w-full py-3 bg-orange-50 text-orange-300 font-bold rounded-xl cursor-not-allowed border border-orange-100 transition-colors">
-                Pricing Preview
-              </button>
-            </motion.div>
-          </div>
-        </div>
-      </section>
       
       {/* Testimonials */}
       <section id="testimonials" className="py-24 relative">
@@ -707,7 +620,7 @@ export default function LandingPage() {
                   <div className="text-xl font-bold text-gray-900">
                     Mohammad Fazil
                   </div>
-                  <div className="text-orange-500">Founder & CEO</div>
+                  <div className="text-orange-500">Founder</div>
                 </div>
               </div>
             </motion.div>
@@ -799,9 +712,7 @@ export default function LandingPage() {
                 <div className="text-xl font-semibold text-gray-900">
                   Mohammad Fazil
                 </div>
-                <div className="text-orange-500">
-                  Founder & CEO, Collab Mind
-                </div>
+                <div className="text-orange-500">Founder, Collab Mind</div>
               </div>
             </motion.div>
           </div>
@@ -881,7 +792,12 @@ export default function LandingPage() {
                     type="text"
                     required
                     value={feedbackForm.userName}
-                    onChange={(e) => setFeedbackForm({ ...feedbackForm, userName: e.target.value })}
+                    onChange={(e) =>
+                      setFeedbackForm({
+                        ...feedbackForm,
+                        userName: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
                     placeholder="John Doe"
                   />
