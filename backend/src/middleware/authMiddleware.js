@@ -24,4 +24,14 @@ async function requireAuth(req, res, next) {
   }
 }
 
-module.exports = { requireAuth };
+async function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Admin role required.',
+    });
+  }
+  return next();
+}
+
+module.exports = { requireAuth, requireAdmin };

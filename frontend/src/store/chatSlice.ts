@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import { io, Socket } from 'socket.io-client';
+import { API_BASE_URL } from '../config';
 
 export interface ChatSlice {
   chats: any[];
@@ -16,7 +17,7 @@ export const createChatSlice: StateCreator<ChatSlice, [], [], ChatSlice> = (set,
   
   connectSocket: (token: string) => {
     if (get().socket) return;
-    const socket = io('http://localhost:5000', {
+    const socket = io(API_BASE_URL, {
       auth: { token }
     });
 

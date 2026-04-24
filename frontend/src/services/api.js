@@ -1,9 +1,7 @@
 import { auth } from '../lib/firebase.ts';
 import { getIdToken } from 'firebase/auth';
 
-const CLOUD_API_BASE_URL = 'https://collabmind-backend-995242116294.asia-south1.run.app';
-const LOCAL_API_BASE_URL = 'http://localhost:5000';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || CLOUD_API_BASE_URL;
+import { API_BASE_URL, CLOUD_API_BASE_URL, LOCAL_API_BASE_URL } from '../config';
 
 function normalizeBaseUrl(baseUrl) {
   return (baseUrl || '').trim().replace(/\/+$/, '');
@@ -191,7 +189,7 @@ export async function updateAdminUserRole(userId, role, token) {
   });
 }
 
-export async function requestPatent(ideaId, summary, token) {
+export async function requestPatent(ideaId, ideaTitle, token) {
   let authToken = token;
   
   if (!authToken) {
@@ -202,13 +200,13 @@ export async function requestPatent(ideaId, summary, token) {
     throw new Error('Missing auth token. Please sign in again.');
   }
 
-  return requestWithFallback(`/api/ideas/${ideaId}/patent-request`, {
+  return requestWithFallback('/api/patent/request', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${authToken}`,
     },
-    body: JSON.stringify({ summary }),
+    body: JSON.stringify({ ideaId, ideaTitle }),
   });
 }
 
@@ -223,7 +221,7 @@ export async function createCollaborationRequest(data, token) {
     throw new Error('Missing auth token. Please sign in again.');
   }
 
-  return requestWithFallback('/api/collaboration/requests', {
+  return requestWithFallback('/api/collaboration/request', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -250,7 +248,7 @@ export async function listCollaborationRequests(scope, token) {
   }
 
   const query = params.toString();
-  const path = query ? `/api/collaboration/requests?${query}` : '/api/collaboration/requests';
+  const path = query ? `/api/collaboration?${query}` : '/api/collaboration';
 
   return requestWithFallback(path, {
     method: 'GET',
@@ -271,12 +269,29 @@ export async function updateCollaborationRequest(requestId, status, token) {
     throw new Error('Missing auth token. Please sign in again.');
   }
 
-  return requestWithFallback(`/api/collaboration/requests/${requestId}`, {
+  return requestWithFallback(`/api/collaboration/status/${requestId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify({ status }),
+  });
+}
+export async function submitFeedback(data) {
+  // Map userName to name for the backend
+  const payload = {
+    name: data.userName,
+    email: data.email,
+    message: data.message,
+    category: data.category,
+  };
+
+  return requestWithFallback('/api/feedback', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
   });
 }

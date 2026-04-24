@@ -8,6 +8,7 @@ import {
   AlertCircle, Loader2
 } from 'lucide-react';
 import Canvas3D from '../components/Canvas3D';
+import { API_BASE_URL } from '../config';
 
 type Role = 'owner' | 'builder';
 type Profession = 'student' | 'freelancer' | 'professional';
@@ -44,11 +45,7 @@ export default function AuthPage() {
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
 
-  const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    (import.meta.env.DEV
-      ? 'http://localhost:5000'
-      : 'https://collabmind-backend-995242116294.asia-south1.run.app');
+
 
   const [formData, setFormData] = useState<AuthFormData>({
     email: '',

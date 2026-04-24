@@ -1,6 +1,6 @@
 const service = require('./service');
 
-async function createRequest(req, res, next) {
+async function postRequest(req, res, next) {
   try {
     const { ideaId, answer } = req.body || {};
     const data = await service.createRequest({
@@ -16,7 +16,7 @@ async function createRequest(req, res, next) {
   }
 }
 
-async function listRequests(req, res, next) {
+async function getRequests(req, res, next) {
   try {
     const scope = req.query.scope === 'requester' ? 'requester' : 'owner';
     const data = await service.listRequestsForUser({
@@ -30,7 +30,7 @@ async function listRequests(req, res, next) {
   }
 }
 
-async function updateRequest(req, res, next) {
+async function patchRequestStatus(req, res, next) {
   try {
     const { status } = req.body || {};
     const data = await service.updateRequestStatus({
@@ -47,7 +47,7 @@ async function updateRequest(req, res, next) {
 }
 
 module.exports = {
-  createRequest,
-  listRequests,
-  updateRequest,
+  postRequest,
+  getRequests,
+  patchRequestStatus,
 };

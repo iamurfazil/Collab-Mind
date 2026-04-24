@@ -2,6 +2,8 @@ const {
   createIdea,
   getAllIdeas,
   getIdeasByUser,
+  getMarketplaceIdeas,
+  getSharedIdeas,
   updateIdeaById,
   deleteIdeaById,
   requestPatentById,
@@ -28,7 +30,8 @@ async function listIdeas(req, res, next) {
 
 async function getIdeas(req, res, next) {
   try {
-    const ideas = await getIdeasByUser(req.user.uid);
+    const { cursor } = req.query;
+    const ideas = await getIdeasByUser(req.user.uid, cursor);
     return res.status(200).json({ success: true, data: ideas });
   } catch (error) {
     error.statusCode = mapErrorToStatus(error);
@@ -102,11 +105,56 @@ async function requestPatent(req, res, next) {
   }
 }
 
+async function listMarketplaceIdeas(req, res, next) {
+  try {
+    const { cursor } = req.query;
+    const ideas = await getMarketplaceIdeas(cursor);
+    return res.status(200).json({ success: true, data: ideas });
+  } catch (error) {
+    error.statusCode = mapErrorToStatus(error);
+    next(error);
+  }
+}
+
+async function listSharedWithMe(req, res, next) {
+  try {
+    const { cursor } = req.query;
+    const ideas = await getSharedIdeas(req.user.uid, cursor);
+    return res.status(200).json({ success: true, data: ideas });
+  } catch (error) {
+    error.statusCode = mapErrorToStatus(error);
+    next(error);
+  }
+}
+
+async function shareIdea(req, res, next) {
+  try {
+    const { visibility, sharedWith } = req.body || {};
+    if (!visibility) {
+      const err = new Error('Visibility is required');
+      err.statusCode = 400;
+      return next(err);
+    }
+
+    const updates = { visibility };
+    if (sharedWith) updates.sharedWith = sharedWith;
+
+    const idea = await updateIdeaById(req.params.id, req.user.uid, updates);
+    return res.status(200).json({ success: true, data: idea });
+  } catch (error) {
+    error.statusCode = mapErrorToStatus(error);
+    next(error);
+  }
+}
+
 module.exports = {
   listIdeas,
   getIdeas,
+  listMarketplaceIdeas,
+  listSharedWithMe,
   postIdea,
   patchIdea,
+  shareIdea,
   removeIdea,
   requestPatent,
 };

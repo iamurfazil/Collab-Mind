@@ -91,21 +91,29 @@ const steps = [
     num: "01",
     title: "Post Your Problem",
     desc: "Describe your real-world challenge and what you need from builders",
+    icon: Rocket,
+    color: "from-orange-500 to-orange-400"
   },
   {
     num: "02",
     title: "Get Matched",
     desc: "Our system connects you with skilled students who can help",
+    icon: Zap,
+    color: "from-blue-500 to-indigo-400"
   },
   {
     num: "03",
     title: "Collaborate & Build",
     desc: "Work together through our integrated chat and tracking tools",
+    icon: Users,
+    color: "from-purple-500 to-pink-400"
   },
   {
     num: "04",
     title: "Launch & Earn",
     desc: "Complete projects, earn certificates, and build your reputation",
+    icon: Award,
+    color: "from-green-500 to-emerald-400"
   },
 ];
 
@@ -197,10 +205,10 @@ export default function LandingPage() {
 
   const approvedFeedback = (feedbackList || []).filter((f: any) => f?.status === "approved");
 
-  const handleFeedbackSubmit = (e: React.FormEvent) => {
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      addFeedback(feedbackForm);
+      await addFeedback(feedbackForm);
       setFeedbackStatus("success");
       setFeedbackForm({
         userName: "",
@@ -434,7 +442,10 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-4 gap-8 relative">
+            {/* Connecting Line (Desktop) */}
+            <div className="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-500/0 via-orange-500/20 to-orange-500/0 -translate-y-1/2 z-0" />
+
             {steps.map((step, index) => (
               <motion.div
                 key={step.num}
@@ -442,21 +453,36 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="relative"
+                className="relative z-10"
               >
-                <div className="glass rounded-2xl p-6 h-full card-3d">
-                  <div className="text-6xl font-bold text-orange-500/20 mb-4">
-                    {step.num}
+                <div className="glass rounded-3xl p-8 h-full border border-white/40 shadow-xl hover:shadow-2xl transition-all duration-500 group">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-white mb-6 shadow-lg group-hover:scale-110 transition-transform duration-500`}>
+                    <step.icon className="w-8 h-8" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-gray-900">
+                  
+                  <div className="text-sm font-black tracking-widest text-orange-500 mb-2">
+                    STEP {step.num}
+                  </div>
+                  
+                  <h3 className="text-2xl font-bold mb-3 text-gray-900">
                     {step.title}
                   </h3>
-                  <p className="text-gray-500">{step.desc}</p>
+                  <p className="text-gray-500 leading-relaxed font-medium">
+                    {step.desc}
+                  </p>
+
+                  {/* Corner Accent */}
+                  <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${step.color} opacity-0 group-hover:opacity-5 rounded-tr-3xl transition-opacity duration-500`} />
                 </div>
 
                 {index < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
-                    <ChevronRight className="w-8 h-8 text-orange-500" />
+                  <div className="hidden md:flex absolute top-1/2 -right-6 transform -translate-y-1/2 z-20 items-center justify-center">
+                    <motion.div
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                    >
+                      <ArrowRight className="w-6 h-6 text-orange-500/50" />
+                    </motion.div>
                   </div>
                 )}
               </motion.div>

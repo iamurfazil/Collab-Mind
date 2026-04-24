@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { API_BASE_URL } from '../config';
 
 export interface IdeaSlice {
   ideas: any[];
@@ -9,7 +10,7 @@ export interface IdeaSlice {
 export const createIdeaSlice: StateCreator<IdeaSlice, [], [], IdeaSlice> = (set) => ({
   ideas: [],
   fetchIdeas: async (token: string) => {
-    const res = await fetch('http://localhost:5000/api/ideas', {
+    const res = await fetch(`${API_BASE_URL}/api/ideas`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.ok) {
@@ -18,7 +19,7 @@ export const createIdeaSlice: StateCreator<IdeaSlice, [], [], IdeaSlice> = (set)
     }
   },
   addIdea: async (idea, token) => {
-    const res = await fetch('http://localhost:5000/api/ideas', {
+    const res = await fetch(`${API_BASE_URL}/api/ideas`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(idea)

@@ -12,8 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
-const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:5000';
+import { API_BASE_URL } from '../config';
 
 async function syncUserWithBackend(
   firebaseUser: import('firebase/auth').User,

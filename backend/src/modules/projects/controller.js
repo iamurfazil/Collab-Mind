@@ -1,6 +1,6 @@
 const service = require('./service');
 
-async function createProjectHandler(req, res, next) {
+async function postProject(req, res, next) {
   try {
     const data = await service.createProject({
       ideaId: req.body.ideaId,
@@ -12,7 +12,7 @@ async function createProjectHandler(req, res, next) {
   }
 }
 
-async function getProjectsHandler(req, res, next) {
+async function getProjects(req, res, next) {
   try {
     const projects = await service.getProjects(req.user.uid);
     return res.status(200).json({ success: true, data: projects });
@@ -21,7 +21,7 @@ async function getProjectsHandler(req, res, next) {
   }
 }
 
-async function createTaskHandler(req, res, next) {
+async function postTask(req, res, next) {
   try {
     const data = await service.createTask(req.params.id, req.user.uid, req.body);
     return res.status(201).json({ success: true, data });
@@ -30,7 +30,7 @@ async function createTaskHandler(req, res, next) {
   }
 }
 
-async function updateTaskHandler(req, res, next) {
+async function patchTask(req, res, next) {
   try {
     const data = await service.updateTask(req.params.id, req.params.taskId, req.user.uid, req.body);
     return res.status(200).json({ success: true, data });
@@ -40,8 +40,8 @@ async function updateTaskHandler(req, res, next) {
 }
 
 module.exports = {
-  createProjectHandler,
-  getProjectsHandler,
-  createTaskHandler,
-  updateTaskHandler
+  postProject,
+  getProjects,
+  postTask,
+  patchTask
 };

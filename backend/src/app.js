@@ -2,7 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const { requireAuth } = require('./middleware/authMiddleware');
 
+const { globalLimiter } = require('./middleware/rateLimiter');
+
 const app = express();
+
+app.set('trust proxy', 1); // For Cloud Run / Load Balancers
+app.use(globalLimiter);
 
 // Safe CORS (avoid crash if env missing)
 app.use(
@@ -15,9 +20,9 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health route (VERY IMPORTANT for Cloud Run)
-app.get('/api/health', requireAuth, (req, res) => {
-  res.send('Backend running');
+// Health route (Public - for infra probes)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 const mainRouter = require('./routes');

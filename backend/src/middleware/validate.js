@@ -15,24 +15,26 @@ const validate = (schema) => (req, res, next) => {
 };
 
 const ideaSchema = z.object({
-  title: z.string().min(3),
-  description: z.string().min(10),
-  expectations: z.string().optional(),
-  status: z.enum(['draft', 'open', 'in_review']).optional(),
+  title: z.string().trim().min(3),
+  description: z.string().trim().min(10),
+  expectations: z.string().trim().optional(),
+  status: z.enum(['draft', 'open', 'in_review', 'in_progress', 'published', 'patent']).optional(),
+  visibility: z.enum(['private', 'marketplace', 'shared']).optional(),
+  sharedWith: z.array(z.string()).optional(),
 });
 
 const cmvcQuerySchema = z.object({
-  title: z.string().min(3),
-  description: z.string().min(10),
+  title: z.string().trim().min(3),
+  description: z.string().trim().min(10),
 });
 
 const collabRequestSchema = z.object({
   ideaId: z.string().min(1),
-  answer: z.string().min(5),
+  answer: z.string().trim().min(5),
 });
 
 const collabStatusSchema = z.object({
-  status: z.enum(['approved', 'rejected']),
+  status: z.enum(['accepted', 'rejected']),
 });
 
 const projectInitSchema = z.object({
@@ -40,14 +42,14 @@ const projectInitSchema = z.object({
 });
 
 const taskSchema = z.object({
-  title: z.string().min(3),
-  description: z.string().optional(),
+  title: z.string().trim().min(3),
+  description: z.string().trim().optional(),
   assignedTo: z.string().optional(),
-  status: z.enum(['todo', 'in-progress', 'done']).optional(),
+  status: z.enum(['todo', 'in_progress', 'done']).optional(),
 });
 
 const taskStatusSchema = z.object({
-  status: z.enum(['todo', 'in-progress', 'done']),
+  status: z.enum(['todo', 'in_progress', 'done']),
 });
 
 const sendOtpSchema = z.object({

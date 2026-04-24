@@ -128,7 +128,7 @@ async function updateRequestStatus({ requestId, ownerId, status }) {
     throw new Error('You are not allowed to update this request');
   }
 
-  if (!['approved', 'rejected'].includes(status)) {
+  if (!['accepted', 'rejected'].includes(status)) {
     throw new Error('Invalid request status');
   }
 
@@ -140,12 +140,14 @@ async function updateRequestStatus({ requestId, ownerId, status }) {
   await requestRef.set(updates, { merge: true });
 
   let updatedIdea = null;
-  if (status === 'approved') {
+  let newProject = null;
+
+  if (status === 'accepted') {
     const ideaRef = db.collection('ideas').doc(request.ideaId);
     await ideaRef.set(
       {
         collaborators: admin.firestore.FieldValue.arrayUnion(request.requesterId),
-        status: 'in_review',
+        status: 'in_progress',
         updatedAt: new Date().toISOString(),
       },
       { merge: true }
@@ -153,6 +155,18 @@ async function updateRequestStatus({ requestId, ownerId, status }) {
 
     const ideaSnapshot = await ideaRef.get();
     updatedIdea = ideaSnapshot.exists ? { id: ideaSnapshot.id, ...ideaSnapshot.data() } : null;
+
+    // Automatically create a project
+    try {
+      const { createProject } = require('../projects/service');
+      // Wrap in try-catch because project might already exist if another collaborator was accepted earlier
+      newProject = await createProject({ ideaId: request.ideaId, ownerId: request.ownerId }).catch(err => {
+         console.warn('[COLLAB] Project creation skipped:', err.message);
+         return null;
+      });
+    } catch (err) {
+      console.error('[COLLAB] Failed to create project:', err);
+    }
   }
 
   try {
@@ -172,6 +186,7 @@ async function updateRequestStatus({ requestId, ownerId, status }) {
   return {
     request: normalizeRequest(updated.id, updated.data()),
     idea: updatedIdea,
+    project: newProject,
   };
 }
 

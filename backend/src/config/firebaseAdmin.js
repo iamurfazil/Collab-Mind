@@ -8,7 +8,7 @@ if (!admin.apps.length) {
   });
 }
 
-const firestoreDatabaseId = process.env.FIRESTORE_DATABASE_ID || 'collabmind-db';
+const firestoreDatabaseId = process.env.FIRESTORE_DATABASE_ID || '(default)';
 const db = getFirestore(admin.app(), firestoreDatabaseId);
 
 module.exports = { admin, db };

@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { API_BASE_URL } from '../config';
 
 export interface CollaborationSlice {
   requests: any[];
@@ -9,7 +10,7 @@ export interface CollaborationSlice {
 export const createCollaborationSlice: StateCreator<CollaborationSlice, [], [], CollaborationSlice> = (set) => ({
   requests: [],
   fetchRequests: async (token: string) => {
-    const res = await fetch('http://localhost:5000/api/collaboration/requests', {
+    const res = await fetch(`${API_BASE_URL}/api/collaboration/requests`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.ok) {
@@ -18,7 +19,7 @@ export const createCollaborationSlice: StateCreator<CollaborationSlice, [], [], 
     }
   },
   updateRequestStatus: async (id, status, token) => {
-    const res = await fetch(`http://localhost:5000/api/collaboration/requests/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/collaboration/requests/${id}`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })

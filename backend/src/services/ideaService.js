@@ -19,11 +19,14 @@ function normalizeIdea(docId, raw = {}) {
   return {
     id: docId,
     userId: raw.userId || '',
+    ownerId: raw.userId || '', // Alias for ownerId
     userName: raw.userName || 'Anonymous',
     title: raw.title || '',
     description: raw.description || '',
     expectations: raw.expectations || 'No expectations provided yet.',
     status: raw.status || 'open',
+    visibility: raw.visibility || 'private', // "private" | "marketplace" | "shared"
+    sharedWith: Array.isArray(raw.sharedWith) ? raw.sharedWith : [],
     progress: typeof raw.progress === 'number' ? raw.progress : 0,
     projectStatus: raw.projectStatus || '',
     dueDate: raw.dueDate || '',
@@ -49,14 +52,16 @@ function sanitizeCreateIdeaPayload(userId, ideaData = {}) {
     title: String(ideaData.title || '').trim(),
     description: String(ideaData.description || '').trim(),
     expectations: String(ideaData.expectations || 'No expectations provided yet.').trim(),
-    status: ideaData.status || 'open',
+    status: ideaData.status || 'draft',
+    visibility: ideaData.visibility || 'private',
+    sharedWith: Array.isArray(ideaData.sharedWith) ? ideaData.sharedWith : [],
     progress: typeof ideaData.progress === 'number' ? ideaData.progress : 0,
     projectStatus: ideaData.projectStatus || '',
     dueDate: ideaData.dueDate || '',
     createdAt: now,
     updatedAt: now,
     collaborators: Array.isArray(ideaData.collaborators) ? ideaData.collaborators : [],
-    isPublished: typeof ideaData.isPublished === 'boolean' ? ideaData.isPublished : true,
+    isPublished: typeof ideaData.isPublished === 'boolean' ? ideaData.isPublished : false,
     cmvcReport: ideaData.cmvcReport || null,
     patentStatus: ideaData.patentStatus || null,
     patentRequested: typeof ideaData.patentRequested === 'boolean' ? ideaData.patentRequested : false,
@@ -73,6 +78,8 @@ function sanitizeUpdateIdeaPayload(updates = {}) {
     'description',
     'expectations',
     'status',
+    'visibility',
+    'sharedWith',
     'progress',
     'projectStatus',
     'dueDate',
@@ -156,14 +163,47 @@ async function getAllIdeas() {
   return ideas;
 }
 
-async function getIdeasByUser(userId) {
-  const snapshot = await db.collection('ideas').where('userId', '==', userId).get();
+async function getIdeasByUser(userId, lastItemCreatedAt) {
+  let query = db.collection('ideas').where('userId', '==', userId).orderBy('createdAt', 'desc');
 
+  if (lastItemCreatedAt) {
+    query = query.startAfter(lastItemCreatedAt);
+  }
+
+  const snapshot = await query.limit(20).get();
   const ideas = snapshot.docs.map((doc) => normalizeIdea(doc.id, doc.data()));
 
-  ideas.sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
-
   return ideas;
+}
+
+async function getMarketplaceIdeas(lastItemCreatedAt) {
+  let query = db
+    .collection('ideas')
+    .where('visibility', '==', 'marketplace')
+    .where('isPublished', '==', true)
+    .orderBy('createdAt', 'desc');
+
+  if (lastItemCreatedAt) {
+    query = query.startAfter(lastItemCreatedAt);
+  }
+
+  const snapshot = await query.limit(20).get();
+  return snapshot.docs.map((doc) => normalizeIdea(doc.id, doc.data()));
+}
+
+async function getSharedIdeas(userId, lastItemCreatedAt) {
+  let query = db
+    .collection('ideas')
+    .where('visibility', '==', 'shared')
+    .where('sharedWith', 'array-contains', userId)
+    .orderBy('createdAt', 'desc');
+
+  if (lastItemCreatedAt) {
+    query = query.startAfter(lastItemCreatedAt);
+  }
+
+  const snapshot = await query.limit(20).get();
+  return snapshot.docs.map((doc) => normalizeIdea(doc.id, doc.data()));
 }
 
 async function updateIdeaById(ideaId, userId, updates) {
@@ -208,6 +248,8 @@ module.exports = {
   createIdea,
   getAllIdeas,
   getIdeasByUser,
+  getMarketplaceIdeas,
+  getSharedIdeas,
   updateIdeaById,
   deleteIdeaById,
   requestPatentById,

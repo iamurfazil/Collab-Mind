@@ -41,13 +41,13 @@ function normalizeIdea(docId, raw = {}) {
 function normalizeFeedback(docId, raw = {}) {
   return {
     id: docId,
-    userName: raw.userName || 'Anonymous',
+    userName: raw.name || raw.userName || 'Anonymous',
     email: raw.email || '',
     category: raw.category || 'general',
     message: raw.message || '',
     status: raw.status || 'pending',
-    timestamp: toIso(raw.timestamp) || null,
-    formattedDate: raw.formattedDate || toIso(raw.timestamp),
+    timestamp: toIso(raw.timestamp) || toIso(raw.createdAt) || null,
+    formattedDate: raw.formattedDate || toIso(raw.timestamp) || toIso(raw.createdAt),
   };
 }
 
@@ -64,10 +64,12 @@ function normalizeAnnouncement(docId, raw = {}) {
 function normalizePatentRequest(docId, raw = {}) {
   return {
     id: docId,
-    ideaTitle: raw.title || 'Untitled idea',
-    requesterName: raw.patentRequester?.name || raw.userName || 'Owner',
-    requesterEmail: raw.patentRequester?.email || raw.email || '',
-    requestedAt: toIso(raw.patentRequestedAt) || null,
+    ideaId: raw.ideaId || '',
+    ideaTitle: raw.ideaTitle || 'Untitled idea',
+    requesterName: raw.userName || 'Owner',
+    requesterEmail: raw.email || '',
+    status: raw.status || 'pending',
+    requestedAt: raw.createdAt || null,
   };
 }
 
@@ -84,10 +86,12 @@ async function getDashboard() {
   const [users, ideas, feedback] = await Promise.all([
     getCollectionRows('users', normalizeUser),
     getCollectionRows('ideas', normalizeIdea),
-    getCollectionRows('feedback', normalizeFeedback),
+    getCollectionRows('feedbacks', normalizeFeedback),
   ]);
   const announcements = await getCollectionRows('announcements', normalizeAnnouncement);
-  const patentSnapshot = await db.collection('ideas').where('patentStatus', '==', 'requested').get();
+  
+  // Fetch from the new dedicated patent_requests collection
+  const patentSnapshot = await db.collection('patent_requests').get();
   const patentRequests = patentSnapshot.docs.map((doc) => normalizePatentRequest(doc.id, doc.data()));
 
   const totalUsers = users.length;

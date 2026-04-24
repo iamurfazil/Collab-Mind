@@ -7,9 +7,9 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-router.post('/', validate(projectInitSchema), controller.createProjectHandler);
-router.get('/', controller.getProjectsHandler);
-router.post('/:id/tasks', validate(taskSchema), controller.createTaskHandler);
-router.patch('/:id/tasks/:taskId', validate(taskStatusSchema), controller.updateTaskHandler);
+router.post('/', validate(projectInitSchema), controller.postProject);
+router.get('/', controller.getProjects);
+router.post('/:id/tasks', validate(taskSchema), controller.postTask);
+router.patch('/:id/tasks/:taskId', validate(taskStatusSchema), controller.patchTask);
 
 module.exports = router;

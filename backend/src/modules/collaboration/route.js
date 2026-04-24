@@ -5,8 +5,13 @@ const { validate, collabRequestSchema, collabStatusSchema } = require('../../mid
 
 const router = express.Router();
 
-router.get('/requests', requireAuth, controller.listRequests);
-router.post('/requests', requireAuth, validate(collabRequestSchema), controller.createRequest);
-router.patch('/requests/:id', requireAuth, validate(collabStatusSchema), controller.updateRequest);
+// POST /api/collaboration/request
+router.post('/request', requireAuth, validate(collabRequestSchema), controller.postRequest);
+
+// GET /api/collaboration
+router.get('/', requireAuth, controller.getRequests);
+
+// PATCH /api/collaboration/status/:id
+router.patch('/status/:id', requireAuth, validate(collabStatusSchema), controller.patchRequestStatus);
 
 module.exports = router;

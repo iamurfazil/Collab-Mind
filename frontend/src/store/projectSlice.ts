@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { API_BASE_URL } from '../config';
 
 export interface ProjectSlice {
   projects: any[];
@@ -10,7 +11,7 @@ export interface ProjectSlice {
 export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice> = (set) => ({
   projects: [],
   fetchProjects: async (token: string) => {
-    const res = await fetch('http://localhost:5000/api/projects', {
+    const res = await fetch(`${API_BASE_URL}/api/projects`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (res.ok) {
@@ -19,7 +20,7 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
     }
   },
   createTask: async (projectId: string, task: any, token: string) => {
-    const res = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks`, {
+    const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}/tasks`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(task)
@@ -34,7 +35,7 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
     }
   },
   updateTask: async (projectId: string, taskId: string, status: string, token: string) => {
-    const res = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks/${taskId}`, {
+    const res = await fetch(`${API_BASE_URL}/api/projects/${projectId}/tasks/${taskId}`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })

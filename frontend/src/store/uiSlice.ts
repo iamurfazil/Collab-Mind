@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { submitFeedback } from '../services/api';
 type User = any;
 
 export interface UISlice {
@@ -13,7 +14,7 @@ export interface UISlice {
   notifications: { id: string; message: string; type: 'success' | 'error' | 'info' }[];
   addNotification: (message: string, type: 'success' | 'error' | 'info') => void;
   feedbackList: any[];
-  addFeedback: (feedback: any) => void;
+  addFeedback: (feedback: any) => Promise<void>;
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -51,9 +52,19 @@ export const createUISlice: StateCreator<UISlice, [], [], UISlice> = (set) => ({
       formattedDate: '3 days ago'
     }
   ],
-  addFeedback: (feedback) => set((state) => ({
-    feedbackList: [...state.feedbackList, { ...feedback, id: generateId(), status: 'pending', formattedDate: 'Just now' }]
-  })),
+  addFeedback: async (feedback) => {
+    try {
+      const result = await submitFeedback(feedback);
+      if (result.success) {
+        set((state) => ({
+          feedbackList: [...state.feedbackList, result.data]
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+      throw error;
+    }
+  },
   addNotification: (message, type) => {
     const id = generateId();
     set((state) => ({
