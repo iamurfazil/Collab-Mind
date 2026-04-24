@@ -1,12 +1,19 @@
 const { analyzeIdeaWithAI } = require('../../services/vertexAIService');
 
-async function analyzeIdea({ title, description }) {
+async function analyzeIdea(titleOrPayload, description) {
+  const payload =
+    titleOrPayload && typeof titleOrPayload === 'object'
+      ? titleOrPayload
+      : { title: titleOrPayload, description };
+  const title = payload?.title || '';
+  const details = payload?.description || '';
+
   console.log("CMVC: calling Vertex AI...");
-  const aiAnalysis = await analyzeIdeaWithAI(title, description);
+  const aiAnalysis = await analyzeIdeaWithAI(title, details);
   console.log("AI RESULT:", aiAnalysis);
 
   // Basic keyword-based demand detection
-  const keywords = description.toLowerCase();
+  const keywords = details.toLowerCase();
 
   let demand_score = 5;
 
@@ -79,7 +86,7 @@ async function analyzeIdea({ title, description }) {
     value_density: Number(value_density),
     risk: {
       level: risk_level,
-      score: risk_score
+      risk_score: risk_score
     },
     ai_analysis: aiAnalysis,
     final_score: Number(final_score),

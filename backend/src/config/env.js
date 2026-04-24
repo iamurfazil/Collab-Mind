@@ -7,6 +7,7 @@ const env = {
   PORT: Number(process.env.PORT) || 5000,
   CLIENT_URL: process.env.CLIENT_URL || '*',
   DB_PROVIDER: process.env.DB_PROVIDER || 'firestore',
+  ADMIN_NOTIFICATION_EMAIL: process.env.ADMIN_NOTIFICATION_EMAIL || '',
 };
 
 module.exports = { env };

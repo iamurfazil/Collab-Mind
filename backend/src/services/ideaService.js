@@ -32,6 +32,11 @@ function normalizeIdea(docId, raw = {}) {
     collaborators: Array.isArray(raw.collaborators) ? raw.collaborators : [],
     isPublished: typeof raw.isPublished === 'boolean' ? raw.isPublished : true,
     cmvcReport: raw.cmvcReport || null,
+    patentStatus: raw.patentStatus || null,
+    patentRequested: typeof raw.patentRequested === 'boolean' ? raw.patentRequested : false,
+    patentRequestedAt: toIso(raw.patentRequestedAt) || null,
+    patentRequester: raw.patentRequester || null,
+    patentSummary: raw.patentSummary || null,
   };
 }
 
@@ -53,6 +58,11 @@ function sanitizeCreateIdeaPayload(userId, ideaData = {}) {
     collaborators: Array.isArray(ideaData.collaborators) ? ideaData.collaborators : [],
     isPublished: typeof ideaData.isPublished === 'boolean' ? ideaData.isPublished : true,
     cmvcReport: ideaData.cmvcReport || null,
+    patentStatus: ideaData.patentStatus || null,
+    patentRequested: typeof ideaData.patentRequested === 'boolean' ? ideaData.patentRequested : false,
+    patentRequestedAt: ideaData.patentRequestedAt || null,
+    patentRequester: ideaData.patentRequester || null,
+    patentSummary: ideaData.patentSummary || null,
   };
 }
 
@@ -79,6 +89,42 @@ function sanitizeUpdateIdeaPayload(updates = {}) {
   }
 
   return payload;
+}
+
+async function requestPatentById(ideaId, requester, summary) {
+  const ideaRef = db.collection('ideas').doc(ideaId);
+  const snapshot = await ideaRef.get();
+
+  if (!snapshot.exists) {
+    throw new Error('Idea not found');
+  }
+
+  const idea = snapshot.data();
+  if (!requester?.uid || idea?.userId !== requester.uid) {
+    throw new Error('Only the idea owner can request a patent');
+  }
+
+  const now = new Date().toISOString();
+  const patentRequester = {
+    id: requester.uid,
+    name: requester.name || requester.displayName || 'Owner',
+    email: requester.email || null,
+  };
+
+  const payload = {
+    patentStatus: 'requested',
+    patentRequested: true,
+    patentRequestedAt: now,
+    patentRequester,
+    patentSummary: String(summary || '').trim(),
+    status: 'patent',
+    isPublished: false,
+    updatedAt: now,
+  };
+
+  await ideaRef.set(payload, { merge: true });
+  const updated = await ideaRef.get();
+  return normalizeIdea(updated.id, updated.data());
 }
 
 function canMutateIdea(idea, userId) {
@@ -164,4 +210,5 @@ module.exports = {
   getIdeasByUser,
   updateIdeaById,
   deleteIdeaById,
+  requestPatentById,
 };

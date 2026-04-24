@@ -1,9 +1,25 @@
+import { auth } from '../lib/firebase.ts';
+import { getIdToken } from 'firebase/auth';
+
 const CLOUD_API_BASE_URL = 'https://collabmind-backend-995242116294.asia-south1.run.app';
 const LOCAL_API_BASE_URL = 'http://localhost:5000';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || CLOUD_API_BASE_URL;
 
 function normalizeBaseUrl(baseUrl) {
   return (baseUrl || '').trim().replace(/\/+$/, '');
+}
+
+async function getFreshToken() {
+  if (!auth.currentUser) {
+    return localStorage.getItem('firebaseIdToken') || localStorage.getItem('authToken') || '';
+  }
+
+  try {
+    return await getIdToken(auth.currentUser, true);
+  } catch (error) {
+    console.warn('Failed to refresh token from Firebase:', error);
+    return localStorage.getItem('firebaseIdToken') || localStorage.getItem('authToken') || '';
+  }
 }
 
 function getApiBaseCandidates() {
@@ -86,13 +102,17 @@ function resolveAuthToken(explicitToken) {
 }
 
 export async function analyzeIdea(data, token) {
-  const authToken = resolveAuthToken(token);
+  let authToken = token;
+  
+  if (!authToken) {
+    authToken = await getFreshToken();
+  }
 
   if (!authToken) {
     throw new Error('Missing auth token. Please sign in again.');
   }
 
-  return requestWithFallback('/api/cmvc/analyze', {
+  const payload = await requestWithFallback('/api/cmvc/analyze', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -100,10 +120,20 @@ export async function analyzeIdea(data, token) {
     },
     body: JSON.stringify(data),
   });
+
+  if (!payload?.success || !payload?.data) {
+    throw new Error(payload?.message || 'Analysis failed');
+  }
+
+  return payload.data;
 }
 
 export async function askNexusAI(data, token) {
-  const authToken = resolveAuthToken(token);
+  let authToken = token;
+  
+  if (!authToken) {
+    authToken = await getFreshToken();
+  }
 
   if (!authToken) {
     throw new Error('Missing auth token. Please sign in again.');
@@ -120,7 +150,11 @@ export async function askNexusAI(data, token) {
 }
 
 export async function getAdminDashboard(token) {
-  const authToken = resolveAuthToken(token);
+  let authToken = token;
+  
+  if (!authToken) {
+    authToken = await getFreshToken();
+  }
 
   if (!authToken) {
     throw new Error('Missing auth token. Please sign in again.');
@@ -135,7 +169,11 @@ export async function getAdminDashboard(token) {
 }
 
 export async function updateAdminUserRole(userId, role, token) {
-  const authToken = resolveAuthToken(token);
+  let authToken = token;
+  
+  if (!authToken) {
+    authToken = await getFreshToken();
+  }
 
   if (!authToken) {
     throw new Error('Missing auth token. Please sign in again.');
@@ -148,5 +186,95 @@ export async function updateAdminUserRole(userId, role, token) {
       Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify({ role }),
+  });
+}
+
+export async function requestPatent(ideaId, summary, token) {
+  let authToken = token;
+  
+  if (!authToken) {
+    authToken = await getFreshToken();
+  }
+
+  if (!authToken) {
+    throw new Error('Missing auth token. Please sign in again.');
+  }
+
+  return requestWithFallback(`/api/ideas/${ideaId}/patent-request`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify({ summary }),
+  });
+}
+
+export async function createCollaborationRequest(data, token) {
+  let authToken = token;
+  
+  if (!authToken) {
+    authToken = await getFreshToken();
+  }
+
+  if (!authToken) {
+    throw new Error('Missing auth token. Please sign in again.');
+  }
+
+  return requestWithFallback('/api/collaboration/requests', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function listCollaborationRequests(scope, token) {
+  let authToken = token;
+  
+  if (!authToken) {
+    authToken = await getFreshToken();
+  }
+
+  if (!authToken) {
+    throw new Error('Missing auth token. Please sign in again.');
+  }
+
+  const params = new URLSearchParams();
+  if (scope) {
+    params.set('scope', scope);
+  }
+
+  const query = params.toString();
+  const path = query ? `/api/collaboration/requests?${query}` : '/api/collaboration/requests';
+
+  return requestWithFallback(path, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+    },
+  });
+}
+
+export async function updateCollaborationRequest(requestId, status, token) {
+  let authToken = token;
+  
+  if (!authToken) {
+    authToken = await getFreshToken();
+  }
+
+  if (!authToken) {
+    throw new Error('Missing auth token. Please sign in again.');
+  }
+
+  return requestWithFallback(`/api/collaboration/requests/${requestId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify({ status }),
   });
 }

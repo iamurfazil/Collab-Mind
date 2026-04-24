@@ -82,7 +82,7 @@ export default function CMVCReportModal({ ideaTitle, ideaDescription, onProceed,
 
     const runAnalysis = async () => {
       try {
-        const result = await analyzeIdea(
+        const reportData = await analyzeIdea(
           {
             title: ideaTitle,
             description: ideaDescription,
@@ -90,12 +90,12 @@ export default function CMVCReportModal({ ideaTitle, ideaDescription, onProceed,
           authToken || undefined
         );
 
-        if (!result?.success || !result?.data) {
-          throw new Error(result?.message || 'Analysis failed');
+        if (!reportData) {
+          throw new Error('Analysis failed');
         }
 
         if (!cancelled) {
-          setReport(normalizeReport(result.data));
+          setReport(normalizeReport(reportData));
           setAnalysisError('');
         }
       } catch (error) {

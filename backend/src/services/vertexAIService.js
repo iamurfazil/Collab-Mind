@@ -58,22 +58,21 @@ function getAIClient() {
 async function analyzeIdeaWithAI(title, description) {
   try {
     getAIClient();
-    const model = getModelForMode();
+    const model = process.env.VERTEX_MODEL || "gemini-2.5-flash";
 
     const prompt = `
-    Analyze this startup idea and return JSON:
+Return ONLY valid JSON. No text outside JSON.
 
-    Title: ${title}
-    Description: ${description}
+{
+  "problem": "...",
+  "industry": "...",
+  "target_users": "...",
+  "complexity": "low|medium|high"
+}
 
-    Return ONLY JSON:
-    {
-      "problem": "",
-      "industry": "",
-      "target_users": "",
-      "complexity": "low|medium|high"
-    }
-    `;
+Title: ${title}
+Description: ${description}
+`;
 
     const response = await getAIClient().models.generateContent({
       model,
@@ -85,8 +84,9 @@ async function analyzeIdeaWithAI(title, description) {
       ]
     });
 
-    const text =
-      response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    console.log("AI RAW:", text);
 
     if (!text) {
       throw new Error("Empty response from Gemini");
@@ -94,7 +94,7 @@ async function analyzeIdeaWithAI(title, description) {
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
 
-    if (!jsonMatch) throw new Error("No JSON found");
+    if (!jsonMatch) throw new Error("Invalid AI response format");
 
     return JSON.parse(jsonMatch[0]);
 

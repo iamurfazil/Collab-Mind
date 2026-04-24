@@ -11,7 +11,16 @@ import {
   updateProfile,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import { auth } from './lib/firebase';
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+  type Unsubscribe,
+} from 'firebase/firestore';
+import { auth, db } from './lib/firebase';
+import { createCollaborationRequest, updateCollaborationRequest, requestPatent as apiRequestPatent } from './services/api';
 
 interface User {
   id: string;
@@ -93,6 +102,7 @@ interface CollaborationRequest {
   ideaTitle: string;
   requesterId: string;
   requesterName: string;
+  requesterEmail?: string;
   ownerId: string; 
   answer: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -141,13 +151,15 @@ interface AppState {
   deleteAccount: () => void;
   
   ideas: Idea[];
-  addIdea: (idea: Omit<Idea, 'id' | 'createdAt' | 'collaborators'>) => void;
+  addIdea: (idea: Omit<Idea, 'id' | 'createdAt'> & { collaborators?: string[] }) => Promise<Idea | null>;
   updateIdea: (id: string, updates: Partial<Idea>) => void;
   deleteIdea: (id: string) => void;
+  replaceIdea: (idea: Idea) => void;
+  requestPatent: (ideaId: string, summary: string) => Promise<void>;
   
   requests: CollaborationRequest[];
-  addRequest: (request: Omit<CollaborationRequest, 'id' | 'createdAt' | 'status'>) => void;
-  updateRequest: (id: string, updates: Partial<CollaborationRequest>) => void;
+  addRequest: (request: { ideaId: string; answer: string }) => Promise<CollaborationRequest | null>;
+  updateRequest: (id: string, status: 'approved' | 'rejected') => Promise<void>;
   
   chats: ChatMessage[];
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
@@ -178,6 +190,65 @@ const BACKEND_BASE_URL =
     ? 'http://localhost:5000'
     : 'https://collabmind-backend-995242116294.asia-south1.run.app');
 const FIREBASE_TOKEN_KEY = 'firebaseIdToken';
+
+let collaborationUnsubscribe: Unsubscribe | null = null;
+
+function stopCollaborationListener() {
+  if (collaborationUnsubscribe) {
+    collaborationUnsubscribe();
+    collaborationUnsubscribe = null;
+  }
+}
+
+function normalizeRequestTimestamp(value: any): string {
+  if (!value) {
+    return new Date().toISOString();
+  }
+  if (typeof value.toDate === 'function') {
+    return value.toDate().toISOString();
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+}
+
+function startCollaborationListener(user: User | null, setState: (state: Partial<AppState>) => void) {
+  stopCollaborationListener();
+
+  if (!user) {
+    setState({ requests: [] });
+    return;
+  }
+
+  const field = user.role === 'owner' ? 'ownerId' : 'requesterId';
+  const requestsQuery = query(
+    collection(db, 'collaboration_requests'),
+    where(field, '==', user.id),
+    orderBy('createdAt', 'desc')
+  );
+
+  collaborationUnsubscribe = onSnapshot(requestsQuery, (snapshot) => {
+    const requests = snapshot.docs.map((doc) => {
+      const raw = doc.data();
+      return {
+        id: doc.id,
+        ideaId: raw.ideaId || '',
+        ideaTitle: raw.ideaTitle || '',
+        requesterId: raw.requesterId || '',
+        requesterName: raw.requesterName || 'Builder',
+        requesterEmail: raw.requesterEmail || '',
+        ownerId: raw.ownerId || raw.projectOwnerId || '',
+        answer: raw.answer || '',
+        status: raw.status || 'pending',
+        createdAt: normalizeRequestTimestamp(raw.createdAt),
+      } as CollaborationRequest;
+    });
+
+    setState({ requests });
+  });
+}
 
 function setStoredToken(token: string | null) {
   if (token) {
@@ -555,7 +626,8 @@ export const useStore = create<AppState>()(
         onIdTokenChanged(auth, async firebaseUser => {
           if (!firebaseUser) {
             setStoredToken(null);
-            set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, ideas: [] });
+            stopCollaborationListener();
+            set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, ideas: [], requests: [] });
             return;
           }
 
@@ -572,9 +644,11 @@ export const useStore = create<AppState>()(
               isAuthReady: true,
               ideas: syncedIdeas ?? get().ideas,
             });
+            startCollaborationListener(user, (state) => set(state));
           } catch {
             setStoredToken(null);
-            set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, ideas: [] });
+            stopCollaborationListener();
+            set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, ideas: [], requests: [] });
           }
         });
       },
@@ -587,6 +661,7 @@ export const useStore = create<AppState>()(
         const syncedIdeas = await fetchIdeasFromBackend(token);
         setStoredToken(token);
         set({ user, authToken: token, isAuthenticated: true, isAuthReady: true, ideas: syncedIdeas ?? get().ideas });
+        startCollaborationListener(user, (state) => set(state));
         return true;
       },
       
@@ -598,13 +673,15 @@ export const useStore = create<AppState>()(
         const syncedIdeas = await fetchIdeasFromBackend(token);
         setStoredToken(token);
         set({ user, authToken: token, isAuthenticated: true, isAuthReady: true, ideas: syncedIdeas ?? get().ideas });
+        startCollaborationListener(user, (state) => set(state));
         return true;
       },
       
       logout: () => {
         void signOut(auth);
         setStoredToken(null);
-        set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, activeSection: 'overview', ideas: [] });
+        stopCollaborationListener();
+        set({ user: null, authToken: null, isAuthenticated: false, isAuthReady: true, activeSection: 'overview', ideas: [], requests: [] });
       },
       
       register: async (email: string, password: string, displayName: string, role: 'owner' | 'builder' | 'admin') => {
@@ -620,6 +697,7 @@ export const useStore = create<AppState>()(
         const syncedIdeas = await fetchIdeasFromBackend(token);
         setStoredToken(token);
         set({ user, authToken: token, isAuthenticated: true, isAuthReady: true, ideas: syncedIdeas ?? get().ideas });
+        startCollaborationListener(user, (state) => set(state));
         return true;
       },
       
@@ -650,16 +728,20 @@ export const useStore = create<AppState>()(
         set((state) => ({ ideas: [...state.ideas, optimisticIdea] }));
 
         const token = get().authToken || localStorage.getItem(FIREBASE_TOKEN_KEY) || '';
-        if (!token) return;
+        if (!token) {
+          return Promise.resolve(null);
+        }
 
-        void createIdeaInBackend(token, optimisticIdea)
+        return createIdeaInBackend(token, optimisticIdea)
           .then((savedIdea) => {
             set((state) => ({
               ideas: state.ideas.map((existingIdea) => existingIdea.id === tempId ? savedIdea : existingIdea),
             }));
+            return savedIdea;
           })
           .catch((error) => {
             console.warn('Failed to persist idea:', error);
+            return null;
           });
       },
       updateIdea: (id, updates) => {
@@ -692,14 +774,57 @@ export const useStore = create<AppState>()(
           console.warn('Failed to persist idea deletion:', error);
         });
       },
+
+      replaceIdea: (idea) => {
+        set((state) => ({
+          ideas: state.ideas.map((existing) => (existing.id === idea.id ? { ...existing, ...idea } : existing)),
+        }));
+      },
+
+      requestPatent: async (ideaId, summary) => {
+        const token = get().authToken || localStorage.getItem(FIREBASE_TOKEN_KEY) || '';
+        if (!token) {
+          throw new Error('Missing auth token. Please sign in again.');
+        }
+
+        const payload = await apiRequestPatent(ideaId, summary, token);
+
+        if (!payload?.success || !payload?.data) {
+          throw new Error(payload?.message || 'Failed to request patent');
+        }
+
+        get().replaceIdea(payload.data as Idea);
+      },
       
-      requests: mockRequests,
-      addRequest: (request) => set((state) => ({
-        requests: [...state.requests, { ...request, id: generateId(), createdAt: new Date().toISOString(), status: 'pending' as const }]
-      })),
-      updateRequest: (id, updates) => set((state) => ({
-        requests: state.requests.map(req => req.id === id ? { ...req, ...updates } : req)
-      })),
+      requests: [],
+      addRequest: async (request) => {
+        const token = get().authToken || localStorage.getItem(FIREBASE_TOKEN_KEY) || '';
+        if (!token) {
+          throw new Error('Missing auth token. Please sign in again.');
+        }
+
+        const payload = await createCollaborationRequest({
+          ideaId: request.ideaId,
+          answer: request.answer,
+        }, token);
+
+        if (!payload?.success || !payload?.data) {
+          throw new Error(payload?.message || 'Failed to send collaboration request');
+        }
+
+        return payload.data as CollaborationRequest;
+      },
+      updateRequest: async (id, status) => {
+        const token = get().authToken || localStorage.getItem(FIREBASE_TOKEN_KEY) || '';
+        if (!token) {
+          throw new Error('Missing auth token. Please sign in again.');
+        }
+
+        const payload = await updateCollaborationRequest(id, status, token);
+        if (payload?.data?.idea) {
+          get().replaceIdea(payload.data.idea as Idea);
+        }
+      },
       
       chats: mockChats,
       addMessage: (message) => set((state) => ({

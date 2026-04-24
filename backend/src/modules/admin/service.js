@@ -61,6 +61,16 @@ function normalizeAnnouncement(docId, raw = {}) {
   };
 }
 
+function normalizePatentRequest(docId, raw = {}) {
+  return {
+    id: docId,
+    ideaTitle: raw.title || 'Untitled idea',
+    requesterName: raw.patentRequester?.name || raw.userName || 'Owner',
+    requesterEmail: raw.patentRequester?.email || raw.email || '',
+    requestedAt: toIso(raw.patentRequestedAt) || null,
+  };
+}
+
 async function getCollectionRows(collectionName, normalizer) {
   const snapshot = await db.collection(collectionName).get();
   return snapshot.docs.map((doc) => normalizer(doc.id, doc.data()));
@@ -77,6 +87,8 @@ async function getDashboard() {
     getCollectionRows('feedback', normalizeFeedback),
   ]);
   const announcements = await getCollectionRows('announcements', normalizeAnnouncement);
+  const patentSnapshot = await db.collection('ideas').where('patentStatus', '==', 'requested').get();
+  const patentRequests = patentSnapshot.docs.map((doc) => normalizePatentRequest(doc.id, doc.data()));
 
   const totalUsers = users.length;
   const adminUsers = users.filter((user) => user.role === 'admin').length;
@@ -96,6 +108,7 @@ async function getDashboard() {
     activeIdeas,
     completedIdeas,
     pendingFeedback,
+    pendingPatentRequests: patentRequests.length,
   };
 
   return {
@@ -104,6 +117,7 @@ async function getDashboard() {
     ideas: sortNewestFirst(ideas, 'createdAt').slice(0, 20),
     feedback: sortNewestFirst(feedback, 'timestamp').slice(0, 20),
     announcements: sortNewestFirst(announcements, 'createdAt').slice(0, 20),
+    patentRequests: sortNewestFirst(patentRequests, 'requestedAt').slice(0, 20),
   };
 }
 

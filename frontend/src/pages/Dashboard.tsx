@@ -110,7 +110,6 @@ export default function Dashboard() {
 
   const filteredNavItems = navItems.filter((item) => {
     if (item.id === "browse-ideas" && user?.role === "owner") return false;
-    if (item.id === "my-ideas" && user?.role === "builder") return false;
     if (item.id === "certificates" && user?.role === "owner") return false;
     if (item.id === "ai-generator" && user?.role === "builder") return false;
     return true;

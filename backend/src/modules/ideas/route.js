@@ -9,5 +9,6 @@ router.get('/mine', requireAuth, controller.getIdeas);
 router.post('/', requireAuth, controller.postIdea);
 router.patch('/:id', requireAuth, controller.patchIdea);
 router.delete('/:id', requireAuth, controller.removeIdea);
+router.post('/:id/patent-request', requireAuth, controller.requestPatent);
 
 module.exports = router;
