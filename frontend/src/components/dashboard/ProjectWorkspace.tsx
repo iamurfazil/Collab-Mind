@@ -11,49 +11,51 @@ import {
 export default function ProjectWorkspace() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, ideas, addNotification } = useStore();
+  const { user, authToken, ideas, addNotification, chats, sendMessage, connectSocket, disconnectSocket, projects, fetchProjects } = useStore();
   
   const [activeTab, setActiveTab] = useState<'discussion' | 'tasks' | 'files' | 'team'>('discussion');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Find the specific project
-  const project = ideas.find(i => i.id === id);
-
   // Determine if the current user is the owner of this project
-  const isOwner = user && project ? project.userId === user.id : false;
+  const idea = (ideas || []).find(i => i.id === id);
+  const project = (projects || []).find(p => p.ideaId === id);
+  const isOwner = user && idea ? idea.userId === user.id : false;
+
+  useEffect(() => {
+    if (authToken) {
+      fetchProjects(authToken);
+      connectSocket(authToken);
+    }
+    return () => disconnectSocket();
+  }, [authToken, fetchProjects, connectSocket, disconnectSocket]);
 
   // --- INTERACTIVE STATE ---
   const [message, setMessage] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
 
-  const [messages, setMessages] = useState([
-    { id: 1, sender: project?.userName || 'Owner', role: 'owner', text: 'Welcome to the workspace everyone! Excited to get started on this.', time: '10:00 AM', isMe: isOwner },
-    { id: 2, sender: 'Alex Builder', role: 'solver', text: 'Thanks! I have already started looking into the initial architecture.', time: '10:15 AM', isMe: user?.displayName === 'Alex Builder' },
-  ]);
+  const messages = (chats || []).filter(c => c.projectId === id).map(c => ({
+    id: c.id,
+    sender: c.senderName,
+    role: c.senderId === idea?.userId ? 'owner' : 'solver',
+    text: c.content,
+    time: new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    isMe: c.senderId === user?.id
+  }));
 
-  const [tasks, setTasks] = useState([
-    { id: 1, title: 'Set up GitHub Repository', assignee: 'Alex Builder', status: 'completed' },
-    { id: 2, title: 'Design Database Schema', assignee: project?.userName || 'Owner', status: 'in-progress' },
-    { id: 3, title: 'Create initial API endpoints', assignee: 'Unassigned', status: 'pending' },
-  ]);
-
-  const [files, setFiles] = useState([
-    { id: 1, name: 'Project_Requirements.pdf', size: '2.4 MB', date: 'Oct 24, 2025', type: 'pdf' },
-    { id: 2, name: 'Architecture_Diagram.png', size: '4.1 MB', date: 'Oct 25, 2025', type: 'image' },
-  ]);
-
-  const [team, setTeam] = useState([
-    { id: project?.userId || '1', name: project?.userName || 'Owner', role: 'Problem Owner', isOwner: true },
-    ...(project?.collaborators || []).map((collabId, idx) => ({
+  const tasks = project?.tasks || [];
+  const files: any[] = [];
+  const team = [
+    { id: idea?.userId || '1', name: idea?.userName || 'Owner', role: 'Problem Owner', isOwner: true },
+    ...(idea?.collaborators || []).map((collabId: string, idx: number) => ({
       id: collabId,
       name: `Collaborator ${idx + 1}`,
       role: 'Builder',
       isOwner: false
     }))
-  ]);
+  ];
 
   // Scroll to bottom of chat when new messages appear
   useEffect(() => {
@@ -81,86 +83,45 @@ export default function ProjectWorkspace() {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() || !id) return;
     
-    setMessages([...messages, {
-      id: Date.now(),
-      sender: user.displayName,
-      role: user.role,
-      text: message,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true
-    }]);
+    sendMessage(id, message);
     setMessage('');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fromChat: boolean = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    addNotification(`File uploads require cloud storage setting up.`, 'info');
+  };
 
-    const newFile = {
-      id: Date.now(),
-      name: file.name,
-      size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      type: file.type.includes('image') ? 'image' : 'document'
-    };
-
-    setFiles([...files, newFile]);
-    addNotification(`File ${file.name} uploaded successfully!`, 'success');
-
-    // If uploaded from chat, also send a message to the group
-    if (fromChat) {
-      setMessages([...messages, {
-        id: Date.now() + 1,
-        sender: user.displayName,
-        role: user.role,
-        text: `Shared a file: ${file.name}`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isMe: true
-      }]);
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim() || !project || !authToken) return;
+    
+    try {
+      await useStore.getState().createTask(project.id, { title: newTaskTitle }, authToken);
+      setNewTaskTitle('');
+      addNotification('Task added to project!', 'success');
+    } catch (err: any) {
+      addNotification(err.message, 'error');
     }
   };
 
-  const handleAddTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTaskTitle.trim()) return;
-    
-    setTasks([...tasks, {
-      id: Date.now(),
-      title: newTaskTitle,
-      assignee: 'Unassigned',
-      status: 'pending'
-    }]);
-    setNewTaskTitle('');
-    addNotification('Task added to project!', 'success');
-  };
-
-  const toggleTaskStatus = (taskId: number) => {
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-        if (newStatus === 'completed') addNotification(`Task completed!`, 'success');
-        return { ...task, status: newStatus };
-      }
-      return task;
-    }));
+  const toggleTaskStatus = async (taskId: string, currentStatus: string) => {
+    if (!project || !authToken) return;
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    try {
+      await useStore.getState().updateTask(project.id, taskId, newStatus, authToken);
+      if (newStatus === 'completed') addNotification(`Task completed!`, 'success');
+    } catch (err: any) {
+      addNotification(err.message, 'error');
+    }
   };
 
   const handleAddTeamMember = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMemberEmail.trim()) return;
-
-    // Mock adding a member by using their email prefix as a name
-    const mockName = newMemberEmail.split('@')[0];
-    setTeam([...team, {
-      id: String(Date.now()),
-      name: mockName.charAt(0).toUpperCase() + mockName.slice(1),
-      role: 'Builder',
-      isOwner: false
-    }]);
-    setNewMemberEmail('');
-    addNotification(`Invitation sent to ${newMemberEmail}`, 'success');
+    addNotification(`Invitations via email will be available soon.`, 'info');
   };
 
   const tabs = [
@@ -336,12 +297,12 @@ export default function ProjectWorkspace() {
                 )}
                 
                 <div className="space-y-3">
-                  {tasks.map((task) => (
+                  {tasks.map((task: any) => (
                     <div key={task.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between group hover:border-orange-300 transition-colors">
                       <div className="flex items-center gap-4">
                         {/* Builders and Owners can toggle tasks */}
                         <button 
-                          onClick={() => toggleTaskStatus(task.id)}
+                          onClick={() => toggleTaskStatus(task.id, task.status)}
                           className={`${task.status === 'completed' ? 'text-green-500' : 'text-gray-300 hover:text-orange-500'} transition-colors cursor-hover`}
                         >
                           {task.status === 'completed' ? <CheckCircle className="w-6 h-6" /> : <Circle className="w-6 h-6" />}

@@ -14,10 +14,10 @@ export default function Submissions() {
   if (!user) return null;
 
   const userSubmissions = user.role === 'owner'
-    ? ideas.filter(i => i.userId === user.id) 
-    : ideas.filter(i => i.collaborators.includes(user.id)); 
+    ? (ideas || []).filter(i => i.userId === user.id) 
+    : (ideas || []).filter(i => (i.collaborators || []).includes(user.id)); 
 
-  const approvedRequests = requests.filter(r => r.requesterId === user.id && r.status === 'approved');
+  const approvedRequests = (requests || []).filter(r => r.requesterId === user.id && r.status === 'approved');
   
   const submissions = userSubmissions.map(idea => {
     const request = approvedRequests.find(r => r.ideaId === idea.id);

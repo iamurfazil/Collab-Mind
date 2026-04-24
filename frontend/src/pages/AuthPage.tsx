@@ -41,7 +41,14 @@ export default function AuthPage() {
 
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.DEV
+      ? 'http://localhost:5000'
+      : 'https://collabmind-backend-995242116294.asia-south1.run.app');
 
   const [formData, setFormData] = useState<AuthFormData>({
     email: '',
@@ -58,11 +65,7 @@ export default function AuthPage() {
     state: ''
   });
 
-  const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    (import.meta.env.DEV
-      ? 'http://localhost:5000'
-      : 'https://collabmind-backend-995242116294.asia-south1.run.app');
+
 
   const getFirebaseLoginErrorMessage = (error: unknown) => {
     if (error instanceof FirebaseError) {
@@ -195,101 +198,71 @@ export default function AuthPage() {
     }
   };
 
+
   const handleSendOtp = async () => {
     if (!formData.email) {
       setError('Please enter your email address first.');
       return;
     }
 
-    setLoading(true);
+    setOtpLoading(true);
     setError('');
 
-    const OTP_ENDPOINT = new URL('/api/auth/send-otp', API_BASE_URL).toString();
-    const token = localStorage.getItem('firebaseIdToken') || localStorage.getItem('authToken');
-
     try {
-      const res = await fetch(OTP_ENDPOINT, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        let message = 'Failed to send OTP. Please try again.';
-        try {
-          const data = await res.json();
-          if (data && typeof data.message === 'string') {
-            message = data.message;
-          }
-        } catch {
-          // Ignore parse errors
-        }
-        throw new Error(message);
+        throw new Error(data.message || 'Failed to send OTP.');
       }
 
       setOtpSent(true);
       setOtp('');
-      setIsEmailVerified(false);
+      setOtpVerified(false);
       addNotification('OTP sent to your email!', 'info');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to send OTP.');
     } finally {
-      setLoading(false);
+      setOtpLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!formData.email) {
-      setError('Please enter your email address first.');
-      return;
-    }
-
     if (otp.length !== 6) {
       setError('Please enter the 6-digit OTP.');
       return;
     }
 
-    setLoading(true);
+    setOtpLoading(true);
     setError('');
 
-    const VERIFY_ENDPOINT = new URL('/api/auth/verify-otp', API_BASE_URL).toString();
-    const token = localStorage.getItem('firebaseIdToken') || localStorage.getItem('authToken');
-
     try {
-      const res = await fetch(VERIFY_ENDPOINT, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email, otp }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        let message = 'Invalid OTP. Please try again.';
-        try {
-          const data = await res.json();
-          if (data && typeof data.message === 'string') {
-            message = data.message;
-          }
-        } catch {
-          // Ignore parse errors
-        }
-        throw new Error(message);
+        throw new Error(data.message || 'Invalid OTP.');
       }
 
-      setIsEmailVerified(true);
+      setOtpVerified(true);
       setOtpSent(false);
       setOtp('');
       setError('');
       addNotification('Email verified successfully!', 'success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.');
+      setError(err instanceof Error ? err.message : 'Invalid OTP.');
     } finally {
-      setLoading(false);
+      setOtpLoading(false);
     }
   };
 
@@ -298,42 +271,44 @@ export default function AuthPage() {
     setLoading(true);
     setError('');
 
-    if (!isEmailVerified) {
-      setError('Please verify your email address with the OTP before creating an account.');
+    if (!otpVerified) {
+      setError('Please verify your email with OTP before creating an account.');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.displayName.trim()) {
+      setError('Please enter your full name.');
       setLoading(false);
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('Password must be at least 6 characters.');
       setLoading(false);
       return;
     }
     
     try {
-      const result = await register(
+      await register(
         formData.email,
         formData.password,
         formData.displayName,
         formData.role
       );
-      if (result) {
-        updateUser({
-          role: formData.role,
-          profession: formData.profession,
-          collegeName: formData.collegeName,
-          stream: formData.profession === 'student' ? formData.stream : undefined,
-          courseYear: formData.profession === 'student' ? formData.courseYear : undefined,
-          semester: formData.profession === 'student' ? formData.semester : undefined,
-          orgName: formData.profession === 'professional' ? formData.orgName : undefined,
-          city: formData.city,
-          state: formData.state
-        });
-        addNotification('Account created successfully!', 'success');
-        navigate('/dashboard');
-      } else {
-        setError('Registration failed. Please try again.');
-      }
+      await updateUser({
+        role: formData.role,
+        profession: formData.profession,
+        collegeName: formData.collegeName,
+        stream: formData.profession === 'student' ? formData.stream : undefined,
+        courseYear: formData.profession === 'student' ? formData.courseYear : undefined,
+        semester: formData.profession === 'student' ? formData.semester : undefined,
+        orgName: formData.profession === 'professional' ? formData.orgName : undefined,
+        city: formData.city,
+        state: formData.state
+      });
+      addNotification('Account created successfully!', 'success');
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during registration.');
     } finally {
@@ -363,7 +338,7 @@ export default function AuthPage() {
     setSuccess('');
     setOtpSent(false);
     setOtp('');
-    setIsEmailVerified(false);
+    setOtpVerified(false);
   };
 
   return (
@@ -642,35 +617,35 @@ export default function AuthPage() {
                         onChange={(e) => {
                           setFormData({ ...formData, email: e.target.value });
                           if (mode === 'register') {
-                            setIsEmailVerified(false);
+                            setOtpVerified(false);
                             setOtpSent(false);
                             setOtp('');
                           }
                         }}
-                        disabled={mode === 'register' && isEmailVerified}
+                        disabled={mode === 'register' && otpVerified}
                         className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-500"
                         placeholder="you@example.com" />
                     </div>
-                    {mode === 'register' && !isEmailVerified && (
+                    {mode === 'register' && !otpVerified && (
                       <button
                         type="button"
                         onClick={handleSendOtp}
-                        disabled={!formData.email || loading}
+                        disabled={!formData.email || otpLoading}
                         className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors whitespace-nowrap disabled:opacity-50 cursor-hover"
                       >
-                        {otpSent ? 'Resend OTP' : 'Get OTP'}
+                        {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : otpSent ? 'Resend' : 'Get OTP'}
                       </button>
                     )}
                   </div>
-                  {mode === 'register' && isEmailVerified && (
+                  {mode === 'register' && otpVerified && (
                     <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="text-sm font-medium text-green-600 mt-2 flex items-center gap-1">
-                      <CheckCircle className="w-4 h-4" /> Email verified successfully
+                      <CheckCircle className="w-4 h-4" /> Email verified
                     </motion.p>
                   )}
                 </div>
 
                 <AnimatePresence>
-                  {mode === 'register' && otpSent && !isEmailVerified && (
+                  {mode === 'register' && otpSent && !otpVerified && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
@@ -685,15 +660,15 @@ export default function AuthPage() {
                           value={otp}
                           onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                           className="flex-1 px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 tracking-[0.5em] font-mono text-center text-lg placeholder-gray-300"
-                          placeholder="Enter code"
+                          placeholder="000000"
                         />
                         <button
                           type="button"
                           onClick={handleVerifyOtp}
-                          disabled={otp.length !== 6 || loading}
+                          disabled={otp.length !== 6 || otpLoading}
                           className="px-6 py-3 bg-gray-900 hover:bg-black text-white font-medium rounded-xl transition-colors disabled:opacity-50 cursor-hover"
                         >
-                          Verify
+                          {otpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
                         </button>
                       </div>
                     </motion.div>

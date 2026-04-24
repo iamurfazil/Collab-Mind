@@ -21,18 +21,18 @@ export default function Overview() {
 
   if (!user) return null;
 
-  const userIdeas = ideas.filter((i) => i.userId === user.id);
-  const pendingRequests = requests.filter(
+  const userIdeas = (ideas || []).filter((i) => i.userId === user.id);
+  const pendingRequests = (requests || []).filter(
     (r) => r.status === "pending" && r.ownerId === user.id,
   );
-  const activeProjects = ideas.filter(
+  const activeProjects = (ideas || []).filter(
     (i) =>
-      (i.userId === user.id || i.collaborators.includes(user.id)) &&
+      (i.userId === user.id || (i.collaborators || []).includes(user.id)) &&
       (i.status === "in_review" || i.status === "pending_review"),
   ).length;
-  const completedProjects = ideas.filter(
+  const completedProjects = (ideas || []).filter(
     (i) =>
-      (i.userId === user.id || i.collaborators.includes(user.id)) &&
+      (i.userId === user.id || (i.collaborators || []).includes(user.id)) &&
       i.status === "completed",
   ).length;
   const trustScore = Math.max(
@@ -311,7 +311,7 @@ export default function Overview() {
               </h2>
               {userIdeas.length > 0 ? (
                 <div className="space-y-3 mb-5">
-                  {userIdeas.slice(0, 2).map((idea) => (
+                  {(userIdeas || []).slice(0, 2).map((idea) => (
                     <div
                       key={idea.id}
                       className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100"
@@ -344,9 +344,9 @@ export default function Overview() {
               <h3 className="text-lg font-bold mb-3 text-gray-900">
                 Your Certificates
               </h3>
-              {certificates.length > 0 ? (
+              { (certificates || []).length > 0 ? (
                 <div className="space-y-3">
-                  {certificates.slice(0, 2).map((cert) => (
+                  {(certificates || []).slice(0, 2).map((cert) => (
                     <div
                       key={cert.id}
                       className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100"

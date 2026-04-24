@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { User } from '../features/auth/types';
+type User = any;
 
 export interface UISlice {
   darkMode: boolean;
@@ -12,6 +12,8 @@ export interface UISlice {
   setProfileToView: (user: User | null) => void;
   notifications: { id: string; message: string; type: 'success' | 'error' | 'info' }[];
   addNotification: (message: string, type: 'success' | 'error' | 'info') => void;
+  feedbackList: any[];
+  addFeedback: (feedback: any) => void;
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -26,6 +28,32 @@ export const createUISlice: StateCreator<UISlice, [], [], UISlice> = (set) => ({
   profileToView: null,
   setProfileToView: (user) => set({ profileToView: user, showProfileModal: !!user }),
   notifications: [],
+  feedbackList: [
+    {
+      id: '1',
+      userName: 'Arjun Mehta',
+      message: 'Collab Mind helped me find a brilliant team for my sustainable energy project. The validation process is a game changer!',
+      status: 'approved',
+      formattedDate: '2 days ago'
+    },
+    {
+      id: '2',
+      userName: 'Sara Khan',
+      message: 'As a builder, I love how easy it is to find real problems to solve. The skill matching is incredibly accurate.',
+      status: 'approved',
+      formattedDate: '1 week ago'
+    },
+    {
+      id: '3',
+      userName: 'Vikram Singh',
+      message: 'The best platform for student innovation. Period.',
+      status: 'approved',
+      formattedDate: '3 days ago'
+    }
+  ],
+  addFeedback: (feedback) => set((state) => ({
+    feedbackList: [...state.feedbackList, { ...feedback, id: generateId(), status: 'pending', formattedDate: 'Just now' }]
+  })),
   addNotification: (message, type) => {
     const id = generateId();
     set((state) => ({

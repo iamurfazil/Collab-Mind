@@ -16,89 +16,63 @@ function mapErrorToStatus(error) {
   return 500;
 }
 
-async function listIdeas(req, res) {
+async function listIdeas(req, res, next) {
   try {
     const ideas = await getAllIdeas();
-    return res.status(200).json({
-      success: true,
-      data: ideas,
-    });
+    return res.status(200).json({ success: true, data: ideas });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    error.statusCode = mapErrorToStatus(error);
+    next(error);
   }
 }
 
-async function getIdeas(req, res) {
+async function getIdeas(req, res, next) {
   try {
     const ideas = await getIdeasByUser(req.user.uid);
-    return res.status(200).json({
-      success: true,
-      data: ideas,
-    });
+    return res.status(200).json({ success: true, data: ideas });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    error.statusCode = mapErrorToStatus(error);
+    next(error);
   }
 }
 
-async function postIdea(req, res) {
+async function postIdea(req, res, next) {
   try {
     const idea = await createIdea(req.user.uid, req.body || {});
-    return res.status(201).json({
-      success: true,
-      data: idea,
-    });
+    return res.status(201).json({ success: true, data: idea });
   } catch (error) {
-    return res.status(mapErrorToStatus(error)).json({
-      success: false,
-      message: error.message,
-    });
+    error.statusCode = mapErrorToStatus(error);
+    next(error);
   }
 }
 
-async function patchIdea(req, res) {
+async function patchIdea(req, res, next) {
   try {
     const idea = await updateIdeaById(req.params.id, req.user.uid, req.body || {});
-    return res.status(200).json({
-      success: true,
-      data: idea,
-    });
+    return res.status(200).json({ success: true, data: idea });
   } catch (error) {
-    return res.status(mapErrorToStatus(error)).json({
-      success: false,
-      message: error.message,
-    });
+    error.statusCode = mapErrorToStatus(error);
+    next(error);
   }
 }
 
-async function removeIdea(req, res) {
+async function removeIdea(req, res, next) {
   try {
     await deleteIdeaById(req.params.id, req.user.uid);
-    return res.status(200).json({
-      success: true,
-      message: 'Idea deleted successfully',
-    });
+    return res.status(200).json({ success: true, message: 'Idea deleted successfully' });
   } catch (error) {
-    return res.status(mapErrorToStatus(error)).json({
-      success: false,
-      message: error.message,
-    });
+    error.statusCode = mapErrorToStatus(error);
+    next(error);
   }
 }
 
-async function requestPatent(req, res) {
+async function requestPatent(req, res, next) {
   try {
     const { summary } = req.body || {};
     if (!summary || !String(summary).trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Patent summary is required',
-      });
+      const err = new Error('Patent summary is required');
+      err.statusCode = 400;
+      return next(err);
     }
 
     const idea = await requestPatentById(req.params.id, req.user, summary);
@@ -123,10 +97,8 @@ async function requestPatent(req, res) {
 
     return res.status(200).json({ success: true, data: idea });
   } catch (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    error.statusCode = 400;
+    next(error);
   }
 }
 

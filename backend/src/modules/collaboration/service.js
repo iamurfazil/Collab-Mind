@@ -1,6 +1,6 @@
 const { admin, db } = require('../../config/firebaseAdmin');
 const { queueEmail } = require('../../services/emailService');
-
+const { notifyUser } = require('../../socket');
 function toIso(value) {
   if (!value) return null;
   if (typeof value.toDate === 'function') return value.toDate().toISOString();

@@ -1,6 +1,6 @@
 const service = require('./service');
 
-async function createRequest(req, res) {
+async function createRequest(req, res, next) {
   try {
     const { ideaId, answer } = req.body || {};
     const data = await service.createRequest({
@@ -11,11 +11,12 @@ async function createRequest(req, res) {
 
     return res.status(201).json({ success: true, data });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message });
+    error.statusCode = 400;
+    next(error);
   }
 }
 
-async function listRequests(req, res) {
+async function listRequests(req, res, next) {
   try {
     const scope = req.query.scope === 'requester' ? 'requester' : 'owner';
     const data = await service.listRequestsForUser({
@@ -25,11 +26,11 @@ async function listRequests(req, res) {
 
     return res.status(200).json({ success: true, data });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 }
 
-async function updateRequest(req, res) {
+async function updateRequest(req, res, next) {
   try {
     const { status } = req.body || {};
     const data = await service.updateRequestStatus({
@@ -40,7 +41,8 @@ async function updateRequest(req, res) {
 
     return res.status(200).json({ success: true, data });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message });
+    error.statusCode = 400;
+    next(error);
   }
 }
 

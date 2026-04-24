@@ -195,7 +195,7 @@ export default function LandingPage() {
     "idle" | "success" | "error"
   >("idle");
 
-  const approvedFeedback = feedbackList.filter((f) => f.status === "approved");
+  const approvedFeedback = (feedbackList || []).filter((f: any) => f?.status === "approved");
 
   const handleFeedbackSubmit = (e: React.FormEvent) => {
     e.preventDefault();

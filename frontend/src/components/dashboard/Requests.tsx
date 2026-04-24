@@ -7,40 +7,40 @@ import {
 } from 'lucide-react';
 
 export default function Requests() {
-  const { user, ideas, requests, updateRequest, updateIdea, addNotification, setProfileToView } = useStore();
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  const [selectedRequest, setSelectedRequest] = useState<typeof requests[0] | null>(null);
+  const { user, authToken, ideas, requests, fetchRequests, addNotification, setProfileToView } = useStore();
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [selectedRequest, setSelectedRequest] = useState<typeof requests[0] | null>(null);
 
-  if (!user) return null;
+  if (!user || !authToken) return null;
 
-  // For owners: show requests on their ideas
-  // For builders: show their own requests
-  const userIdeaIds = ideas.filter(i => i.userId === user.id).map(i => i.id);
-  const myRequests = user.role === 'owner' 
-    ? requests.filter(r => userIdeaIds.includes(r.ideaId))
-    : requests.filter(r => r.requesterId === user.id);
+  // For owners: show requests on their ideas
+  // For builders: show their own requests
+  const userIdeaIds = (ideas || []).filter(i => i.userId === user.id).map(i => i.id);
+  const myRequests = user.role === 'owner' 
+    ? (requests || []).filter(r => userIdeaIds.includes(r.ideaId))
+    : (requests || []).filter(r => r.requesterId === user.id);
 
-  const filteredRequests = filter === 'all' ? myRequests : myRequests.filter(r => r.status === filter);
+  const filteredRequests = filter === 'all' ? myRequests : myRequests.filter(r => r.status === filter);
 
-  const handleApprove = (request: typeof requests[0]) => {
-    updateRequest(request.id, { status: 'approved' });
-    // Add collaborator to the idea
-    const idea = ideas.find(i => i.id === request.ideaId);
-    if (idea) {
-      updateIdea(request.ideaId, { 
-        collaborators: [...idea.collaborators, request.requesterId],
-        status: 'in_review'
-      });
-    }
-    addNotification(`Approved ${request.requesterName}'s request!`, 'success');
-    setSelectedRequest(null);
-  };
+  const handleApprove = async (request: typeof requests[0]) => {
+    try {
+      await useStore.getState().updateRequestStatus(request.id, 'approved', authToken);
+      addNotification(`Approved ${request.requesterName}'s request!`, 'success');
+      setSelectedRequest(null);
+    } catch (err: any) {
+      addNotification(err.message, 'error');
+    }
+  };
 
-  const handleReject = (request: typeof requests[0]) => {
-    updateRequest(request.id, { status: 'rejected' });
-    addNotification('Request rejected', 'error');
-    setSelectedRequest(null);
-  };
+  const handleReject = async (request: typeof requests[0]) => {
+    try {
+      await useStore.getState().updateRequestStatus(request.id, 'rejected', authToken);
+      addNotification('Request rejected', 'error');
+      setSelectedRequest(null);
+    } catch (err: any) {
+      addNotification(err.message, 'error');
+    }
+  };
 
   const statusColors = {
     pending: 'bg-yellow-500/20 text-yellow-500',

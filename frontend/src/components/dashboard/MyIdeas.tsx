@@ -34,7 +34,7 @@ export default function MyIdeas() {
 
   if (!user) return null;
 
-  const userIdeas = ideas.filter(i => i.userId === user.id);
+  const userIdeas = (ideas || []).filter(i => i.userId === user.id);
   
   // Safely catch legacy 'open' statuses under the 'in_review' filter
   const filteredIdeas = filter === 'all' 

@@ -1,20 +1,19 @@
+const { env } = require('./config/env'); // Load env vars first
+const http = require('http');
 const app = require('./app');
-const { env } = require('./config/env');
 const { logger } = require('./utils/logger');
+const { initializeSocket } = require('./socket');
 
-// Use Cloud Run PORT first, fallback to env or 5000
 const port = process.env.PORT || env.PORT || 5000;
+const server = http.createServer(app);
 
 async function bootstrap() {
   try {
     console.log("Starting server...");
 
-    // Temporarily disabled to avoid crash in Cloud Run
-    // await connectDatabase();
-    // initializeFirebase();
+    await initializeSocket(server);
 
-    // IMPORTANT: bind to 0.0.0.0 for Cloud Run
-    app.listen(port, "0.0.0.0", () => {
+    server.listen(port, "0.0.0.0", () => {
       logger.info(`Collab Mind backend running on port ${port}`);
     });
 

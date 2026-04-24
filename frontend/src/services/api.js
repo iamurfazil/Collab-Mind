@@ -112,6 +112,8 @@ export async function analyzeIdea(data, token) {
     throw new Error('Missing auth token. Please sign in again.');
   }
 
+  console.log('[API] analyzeIdea payload:', data);
+
   const payload = await requestWithFallback('/api/cmvc/analyze', {
     method: 'POST',
     headers: {

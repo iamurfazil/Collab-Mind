@@ -69,7 +69,7 @@ export default function Certificates() {
 
   if (!user) return null;
 
-  const userCertificates = certificates.filter(c => c.userId === user.id);
+  const userCertificates = (certificates || []).filter(c => c.userId === user.id);
   const filteredCertificates = filter === 'all' 
     ? userCertificates 
     : userCertificates.filter(c => c.type === filter);

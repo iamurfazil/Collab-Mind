@@ -103,10 +103,10 @@ export default function CurrentProjects() {
 
   if (!user) return null;
 
-  const userProjects = ideas.filter(
+  const userProjects = (ideas || []).filter(
     idea =>
       idea.userId === user.id ||
-      idea.collaborators.includes(user.id)
+      (idea.collaborators || []).includes(user.id)
   );
 
   const currentProjects = userProjects.filter(
@@ -154,8 +154,8 @@ export default function CurrentProjects() {
       determinedType = 'excellence';
     }
 
-    if (idea && idea.collaborators) {
-      idea.collaborators.forEach(collabId => {
+    if (idea && (idea.collaborators || []).length > 0) {
+      (idea.collaborators || []).forEach(collabId => {
         addCertificate({
           userId: collabId,
           projectId: idea.id,

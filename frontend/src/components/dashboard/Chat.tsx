@@ -19,63 +19,50 @@ interface Message {
 }
 
 export default function Chat() {
-  const { user, ideas, chats, addMessage } = useStore();
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [messageInput, setMessageInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user, authToken, ideas, chats, sendMessage, connectSocket, disconnectSocket } = useStore();
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [messageInput, setMessageInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!user) return null;
+  if (!user || !authToken) return null;
 
-  // STRICT FILTER: Only show projects with active, approved collaborations
-  const userProjects = ideas.filter(idea => {
-    // If the current user is the owner of the idea, ONLY show it if there is at least one approved builder
+  useEffect(() => {
+    connectSocket(authToken);
+    return () => disconnectSocket();
+  }, [authToken, connectSocket, disconnectSocket]);
+
+  // STRICT FILTER: Only show projects with active, approved collaborations
+  const userProjects = (ideas || []).filter(idea => {
     if (idea.userId === user.id) {
-      return idea.collaborators && idea.collaborators.length > 0;
+      return (idea.collaborators || []).length > 0;
     }
-    // If the current user is a builder, ONLY show it if they have been approved (their ID is in collaborators)
-    return idea.collaborators && idea.collaborators.includes(user.id);
-  });
+    return (idea.collaborators || []).includes(user.id);
+  });
 
-  const selectedIdea = ideas.find(i => i.id === selectedProject);
-  const projectChats = chats.filter(c => c.projectId === selectedProject);
+  const selectedIdea = (ideas || []).find(i => i.id === selectedProject);
+  const projectChats = (chats || []).filter(c => c.projectId === selectedProject);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [projectChats]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [projectChats]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!messageInput.trim() || !selectedProject) return;
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageInput.trim() || !selectedProject) return;
 
-    addMessage({
-      projectId: selectedProject,
-      senderId: user.id,
-      senderName: user.displayName,
-      content: messageInput,
-    });
+    sendMessage(selectedProject, messageInput);
+    setMessageInput('');
+  };
 
-    setMessageInput('');
-  };
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedProject) return;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedProject) return;
-
-    // Simulate file upload
-    const mockFileUrl = URL.createObjectURL(file);
-    
-    addMessage({
-      projectId: selectedProject,
-      senderId: user.id,
-      senderName: user.displayName,
-      content: `Shared a file: ${file.name}`,
-      fileUrl: mockFileUrl,
-      fileName: file.name,
-      fileType: file.type,
-    });
-  };
+    // Simulate file upload
+    console.log(`File uploads disabled for MVP. File: ${file.name}`);
+  };
 
   const getFileIcon = (type?: string) => {
     if (!type) return <File className="w-5 h-5" />;
@@ -89,7 +76,7 @@ export default function Chat() {
     if (!project) return '';
     if (project.userId === user.id) {
       // Current user is the owner, try to find a message from the builder
-      const builderMessage = chats.find(c => c.projectId === project.id && c.senderId !== user.id);
+      const builderMessage = (chats || []).find(c => c.projectId === project.id && c.senderId !== user.id);
       return builderMessage ? builderMessage.senderName : 'Builder';
     }
     // Current user is the builder, return the owner's name
@@ -143,8 +130,8 @@ export default function Chat() {
             ) : (
               filteredProjects.map((project) => {
                 const isActive = selectedProject === project.id;
-                const lastMessage = chats.filter(c => c.projectId === project.id).slice(-1)[0];
-                const unreadCount = chats.filter(
+                const lastMessage = (chats || []).filter(c => c.projectId === project.id).slice(-1)[0];
+                const unreadCount = (chats || []).filter(
   c => c.projectId === project.id && c.senderId !== user.id
 ).length;
                 
