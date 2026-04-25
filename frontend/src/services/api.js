@@ -149,6 +149,17 @@ export async function askNexusAI(data, token) {
   });
 }
 
+export async function generateProjectIdeas(message, history, token) {
+  return askNexusAI({
+    message,
+    history,
+    role: 'builder',
+    context: {
+      goal: 'Act as a professional project brainstormer. Generate 3-5 catchy project titles and a detailed problem description based on the user\'s input. Format the output clearly with bold titles and bullet points.'
+    }
+  }, token);
+}
+
 export async function getAdminDashboard(token) {
   let authToken = token;
   

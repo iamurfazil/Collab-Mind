@@ -24,11 +24,19 @@ async function saveUser(user) {
 
   const payload = {
     uid: user.uid,
-    email: user.email || null,
-    displayName: user.displayName || user.name || null,
+    email: user.email || (existing.exists ? existing.data().email : null),
+    displayName: user.displayName || user.name || (existing.exists ? existing.data().displayName : null),
     role: resolveRole(existing.exists ? existing.data().role : null, user.role),
-    city: user.city || existing.data()?.city || null,
-    state: user.state || existing.data()?.state || null,
+    city: user.city || (existing.exists ? existing.data().city : null),
+    state: user.state || (existing.exists ? existing.data().state : null),
+    membership: user.membership || (existing.exists ? existing.data().membership : 'free'),
+    bio: user.bio || (existing.exists ? existing.data().bio : null),
+    skills: user.skills || (existing.exists ? existing.data().skills : []),
+    linkedin: user.linkedin || (existing.exists ? existing.data().linkedin : null),
+    collegeName: user.collegeName || (existing.exists ? existing.data().collegeName : null),
+    stream: user.stream || (existing.exists ? existing.data().stream : null),
+    btechYear: user.btechYear || (existing.exists ? existing.data().btechYear : null),
+    btechSemester: user.btechSemester || (existing.exists ? existing.data().btechSemester : null),
     createdAt: existing.exists ? existing.data().createdAt : new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

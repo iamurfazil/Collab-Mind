@@ -138,11 +138,11 @@ export default function ProfileModal() {
                     <div className="grid grid-cols-2 gap-3 text-sm text-gray-800 font-semibold relative z-10">
                         <div className="flex items-center gap-3">
                             <div className="w-2 h-2 bg-orange-500 rounded-sm flex-shrink-0"></div>
-                            {profileToView.courseYear ? formatYear(profileToView.courseYear) : 'Year N/A'}
+                            {profileToView.btechYear ? formatYear(profileToView.btechYear) : 'Year N/A'}
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="w-2 h-2 bg-orange-500 rounded-sm flex-shrink-0"></div>
-                            {profileToView.semester ? `Sem ${profileToView.semester}` : 'Sem N/A'}
+                            {profileToView.btechSemester ? `Sem ${profileToView.btechSemester}` : 'Sem N/A'}
                         </div>
                     </div>
                   </>
@@ -167,7 +167,7 @@ export default function ProfileModal() {
             {/* General joined date bullet */}
             <div className="w-full pl-2 mb-8 flex items-center gap-3 text-sm text-gray-800 font-semibold">
                 <Calendar className="w-4 h-4 text-orange-600 flex-shrink-0" />
-                Joined {new Date(profileToView.joinDate || Date.now()).getFullYear()}
+                Joined {new Date(profileToView.joinDate || profileToView.createdAt || Date.now()).getFullYear()}
             </div>
 
             {/* Skills (Smaller, below details) */}
@@ -185,7 +185,7 @@ export default function ProfileModal() {
 
             {/* Small Footer Text / Mock URL (Orange tint) */}
             <div className="w-full text-[0.65rem] text-orange-800/80 font-mono mb-6 leading-tight tracking-tight">
-              <p>ID: {profileToView.id?.substring(0, 12).toUpperCase() || 'UNKNOWN'}</p>
+              <p>ID: {(profileToView.uid || profileToView.id)?.substring(0, 12).toUpperCase() || 'UNKNOWN'}</p>
               <p>AUTH: COLLABMIND.COM/VERIFY</p>
             </div>
 

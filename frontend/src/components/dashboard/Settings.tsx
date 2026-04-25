@@ -17,6 +17,8 @@ export default function Settings() {
     bio: user?.bio || '',
     skills: user?.skills?.join(', ') || '',
     linkedin: user?.linkedin || '',
+    collegeName: user?.collegeName || '',
+    stream: user?.stream || '',
     btechYear: user?.btechYear || '1',
     btechSemester: user?.btechSemester || '1',
   });
@@ -56,6 +58,8 @@ export default function Settings() {
       bio: profileData.bio,
       skills: profileData.skills.split(',').map(s => s.trim()).filter(Boolean),
       linkedin: profileData.linkedin,
+      collegeName: profileData.collegeName,
+      stream: profileData.stream,
       ...(isStudent && {
         btechYear: profileData.btechYear,
         btechSemester: profileData.btechSemester,
@@ -149,20 +153,37 @@ export default function Settings() {
 
               {/* Form */}
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">Display Name</label>
-                  <input
-                    type="text"
-                    value={profileData.displayName}
-                    onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900"
-                  />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">Display Name</label>
+                    <input
+                      type="text"
+                      value={profileData.displayName}
+                      onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">LinkedIn Profile</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                        <Linkedin className="w-5 h-5 text-[#0A66C2]" />
+                      </div>
+                      <input
+                        type="url"
+                        value={profileData.linkedin}
+                        onChange={(e) => setProfileData({ ...profileData, linkedin: e.target.value })}
+                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
+                        placeholder="https://linkedin.com/in/your-profile"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-2">Bio</label>
                   <textarea
-                    rows={4}
+                    rows={3}
                     value={profileData.bio}
                     onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all resize-none text-gray-900 placeholder-gray-400"
@@ -181,34 +202,50 @@ export default function Settings() {
                   />
                 </div>
 
-                {/* LinkedIn */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">LinkedIn Profile</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                      <Linkedin className="w-5 h-5 text-[#0A66C2]" />
-                    </div>
-                    <input
-                      type="url"
-                      value={profileData.linkedin}
-                      onChange={(e) => setProfileData({ ...profileData, linkedin: e.target.value })}
-                      className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900 placeholder-gray-400"
-                      placeholder="https://linkedin.com/in/your-profile"
-                    />
-                  </div>
-                </div>
-
                 {/* Academic Details — students only */}
                 {isStudent && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-2"
+                    className="space-y-4 pt-2 border-t border-gray-100"
                   >
-                    <label className="block text-sm font-medium text-gray-600">Academic Details</label>
+                    <div className="flex items-center gap-2 text-gray-900 font-bold mb-1">
+                      <GraduationCap className="w-5 h-5 text-orange-500" />
+                      Academic Background
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-2">College/University Name</label>
+                        <div className="relative">
+                          <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                          <input
+                            type="text"
+                            value={profileData.collegeName}
+                            onChange={(e) => setProfileData({ ...profileData, collegeName: e.target.value })}
+                            className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900"
+                            placeholder="e.g. Stanford University"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-2">Course/Stream</label>
+                        <div className="relative">
+                          <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                          <input
+                            type="text"
+                            value={profileData.stream}
+                            onChange={(e) => setProfileData({ ...profileData, stream: e.target.value })}
+                            className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-gray-900"
+                            placeholder="e.g. Computer Science"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1.5">B.Tech Year</label>
+                        <label className="block text-sm text-gray-600 mb-2">B.Tech Year</label>
                         <select
                           value={profileData.btechYear}
                           onChange={(e) => handleYearChange(e.target.value)}
@@ -221,7 +258,7 @@ export default function Settings() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1.5">Semester</label>
+                        <label className="block text-sm text-gray-600 mb-2">Semester</label>
                         <select
                           value={profileData.btechSemester}
                           onChange={(e) => setProfileData({ ...profileData, btechSemester: e.target.value })}
@@ -288,7 +325,13 @@ export default function Settings() {
                     </span>
                   </div>
                   {user.membership === 'free' && (
-                    <button className="text-orange-500 hover:text-orange-600 font-medium cursor-hover">
+                    <button 
+                      onClick={async () => {
+                        await updateUser({ membership: 'premium' });
+                        addNotification('Plan successfully activated! You now have Premium access.', 'success');
+                      }}
+                      className="text-orange-500 hover:text-orange-600 font-medium cursor-hover"
+                    >
                       Upgrade to Premium
                     </button>
                   )}

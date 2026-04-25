@@ -97,8 +97,8 @@ export default function BrowseIdeas() {
     }
   };
 
-  const handleUpgradePlan = () => {
-    updateUser({ membership: 'premium' });
+  const handleUpgradePlan = async () => {
+    await updateUser({ membership: 'premium' });
     addNotification('Plan successfully activated! You now have Premium access.', 'success');
     setShowPlanModal(false);
   };

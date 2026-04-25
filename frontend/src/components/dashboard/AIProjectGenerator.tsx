@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store';
 import { 
-  Send, Sparkles, Bot, User, Loader2, RefreshCw, 
-  Lightbulb, ArrowRight
+  Send, Sparkles, Bot, Loader2, RefreshCw, 
+  Lightbulb
 } from 'lucide-react';
+// @ts-ignore - existing API module is JavaScript; runtime exports are valid.
+import { generateProjectIdeas } from '../../services/api';
 
 interface Message {
   id: string;
@@ -49,17 +51,33 @@ export default function AIProjectGenerator() {
     setInput('');
     setIsTyping(true);
 
-    // MOCK API CALL: Simulate backend processing delay
-    // TODO: Replace this block with actual API integration later
-    setTimeout(() => {
+    try {
+      // Map history for the API
+      const history = messages.map(msg => ({
+        role: msg.role === 'ai' ? 'assistant' : 'user',
+        content: msg.content
+      }));
+
+      const response = await generateProjectIdeas(text, history);
+      
       const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
+        id: Date.now().toString(),
         role: 'ai',
-        content: "Here are a few project title ideas based on your input:\n\n1. **NexLearn**: An interactive learning hub.\n2. **EduConnect**: Bridging the gap in student networking.\n\nDescription: A robust platform designed to streamline communication and resource sharing among students... \n\n(This is a placeholder response until we connect the backend!)"
+        content: response.data?.reply || "I'm sorry, I couldn't generate ideas right now. Please try again."
       };
+      
       setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('AI Generation Error:', error);
+      const errorMsg: Message = {
+        id: Date.now().toString(),
+        role: 'ai',
+        content: "I encountered an error while generating ideas. Please try again in a moment."
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleClearChat = () => {
