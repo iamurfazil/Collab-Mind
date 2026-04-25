@@ -8,6 +8,7 @@ import {
   FileEdit, ShieldCheck
 } from 'lucide-react';
 import CMVCReportModal from './CMVCReportModal';
+import PlanActivationModal from './PlanActivationModal';
 
 export default function MyIdeas() {
   const [showOwnerDisclaimer, setShowOwnerDisclaimer] = useState(false);
@@ -18,6 +19,10 @@ export default function MyIdeas() {
   const [optForPatent, setOptForPatent] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<CMVCReport | null>(null); 
   
+  // NEW STATE: For viewing existing reports
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [reportToView, setReportToView] = useState<{title: string, description: string, report: CMVCReport} | null>(null);
+
   const { user, ideas, addIdea, updateIdea, deleteIdea, addNotification } = useStore();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -134,6 +139,23 @@ export default function MyIdeas() {
     setOptForPatent(false);
   };
 
+  const handleViewReport = (idea: any) => {
+    if (user.membership !== 'premium') {
+      setShowPlanModal(true);
+      return;
+    }
+    
+    if (idea.cmvcReport) {
+      setReportToView({
+        title: idea.title,
+        description: idea.description,
+        report: idea.cmvcReport
+      });
+    } else {
+      addNotification('No report available for this idea.', 'info');
+    }
+  };
+
   const handleCMVCEdit = () => {
     setShowCMVCReport(false);
     setShowForm(true);
@@ -159,6 +181,25 @@ export default function MyIdeas() {
 
   return (
     <div className="space-y-6">
+      {/* Plan Gate Modal */}
+      <PlanActivationModal 
+        isOpen={showPlanModal} 
+        onClose={() => setShowPlanModal(false)} 
+      />
+
+      {/* View Existing Report Modal */}
+      <AnimatePresence>
+        {reportToView && (
+          <CMVCReportModal
+            ideaTitle={reportToView.title}
+            ideaDescription={reportToView.description}
+            reportData={reportToView.report}
+            viewOnly={true}
+            onClose={() => setReportToView(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -396,9 +437,23 @@ export default function MyIdeas() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {/* EDIT BUTTON: Only show if status is 'draft' */}
-                  {idea.status === 'draft' && (
+                  <div className="flex items-center gap-2">
+                    {/* VIEW REPORT BUTTON */}
+                    {idea.cmvcReport && (
+                      <motion.button
+                        onClick={() => handleViewReport(idea)}
+                        className="p-3 rounded-xl bg-orange-50 border border-orange-100 text-orange-600 hover:bg-orange-100 cursor-hover flex items-center gap-2 shadow-sm"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        title="View Validation Report"
+                      >
+                        <ShieldCheck className="w-5 h-5" />
+                        <span className="text-sm font-bold">View Report</span>
+                      </motion.button>
+                    )}
+                    
+                    {/* EDIT BUTTON: Only show if status is 'draft' */}
+                    {idea.status === 'draft' && (
                     <motion.button
                       onClick={() => handleEdit(idea)}
                       className="p-3 rounded-xl bg-gray-50 border border-gray-200 hover:bg-orange-50 text-gray-600 hover:text-orange-500 cursor-hover"

@@ -115,54 +115,52 @@ export default function ProfileModal() {
             <div className="text-xs font-bold text-orange-900/80 mt-1 mb-8 uppercase tracking-widest flex items-center gap-2">
               <span>Collab Mind</span>
               <span className="w-1 h-1 rounded-full bg-orange-500"></span>
-              <span>{profileToView.role === 'owner' ? 'Owner' : 'Builder'}</span>
+              <span>{profileToView.role === 'owner' ? 'Problem Owner' : 'Builder'}</span>
             </div>
 
             {/* --- PROFESSION DETAILS (Dynamic & Orange Theme) --- */}
-            {profileToView.role !== 'owner' && (
-              <div className="w-full space-y-3.5 pl-2 mb-8 bg-orange-50 p-4 rounded-xl border border-orange-100 relative transform-style-3d">
-                {/* Subtle orange "glow" layer behind the details box to enhance 3D feel */}
-                <div className="absolute inset-0 bg-orange-200/50 rounded-xl blur-md translate-z-[-1px]"></div>
-                
-                {/* Default to Student view if profession is missing from mock data */}
-                {(!profileToView.profession || profileToView.profession === 'student') && (
-                  <>
-                    <div className="flex items-center gap-3 text-sm text-gray-800 font-semibold relative z-10">
-                      <BookOpen className="w-4 h-4 text-orange-600 flex-shrink-0" />
-                      College: <span className="font-medium text-gray-700">{profileToView.collegeName || 'Not specified'}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-gray-800 font-semibold relative z-10">
-                      <GraduationCap className="w-4 h-4 text-orange-600 flex-shrink-0" />
-                      Course: <span className="font-medium text-gray-700">{profileToView.stream || 'Not specified'}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm text-gray-800 font-semibold relative z-10">
-                        <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 bg-orange-500 rounded-sm flex-shrink-0"></div>
-                            {profileToView.btechYear ? formatYear(profileToView.btechYear) : 'Year N/A'}
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 bg-orange-500 rounded-sm flex-shrink-0"></div>
-                            {profileToView.btechSemester ? `Sem ${profileToView.btechSemester}` : 'Sem N/A'}
-                        </div>
-                    </div>
-                  </>
-                )}
-
-                {profileToView.profession === 'professional' && (
+            <div className="w-full space-y-3.5 pl-2 mb-8 bg-orange-50 p-4 rounded-xl border border-orange-100 relative transform-style-3d">
+              {/* Subtle orange "glow" layer behind the details box to enhance 3D feel */}
+              <div className="absolute inset-0 bg-orange-200/50 rounded-xl blur-md translate-z-[-1px]"></div>
+              
+              {/* Default to Student view if profession is missing from mock data */}
+              {(!profileToView.profession || profileToView.profession === 'student') && (
+                <>
                   <div className="flex items-center gap-3 text-sm text-gray-800 font-semibold relative z-10">
-                    <Building2 className="w-4 h-4 text-orange-600 flex-shrink-0" />
-                    Org: <span className="font-medium text-gray-700">{profileToView.orgName || 'Not specified'}</span>
+                    <BookOpen className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                    College: <span className="font-medium text-gray-700">{profileToView.collegeName || 'Not specified'}</span>
                   </div>
-                )}
-
-                {profileToView.profession === 'freelancer' && (
                   <div className="flex items-center gap-3 text-sm text-gray-800 font-semibold relative z-10">
-                    <Laptop className="w-4 h-4 text-orange-600 flex-shrink-0" />
-                    <span className="font-medium text-gray-700">Independent Freelancer</span>
+                    <GraduationCap className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                    Course: <span className="font-medium text-gray-700">{profileToView.stream || 'Not specified'}</span>
                   </div>
-                )}
-              </div>
-            )}
+                  <div className="grid grid-cols-2 gap-3 text-sm text-gray-800 font-semibold relative z-10">
+                      <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-orange-500 rounded-sm flex-shrink-0"></div>
+                          {profileToView.btechYear ? formatYear(profileToView.btechYear) : 'Year N/A'}
+                      </div>
+                      <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-orange-500 rounded-sm flex-shrink-0"></div>
+                          {profileToView.btechSemester ? `Sem ${profileToView.btechSemester}` : 'Sem N/A'}
+                      </div>
+                  </div>
+                </>
+              )}
+
+              {profileToView.profession === 'professional' && (
+                <div className="flex items-center gap-3 text-sm text-gray-800 font-semibold relative z-10">
+                  <Building2 className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                  Org: <span className="font-medium text-gray-700">{profileToView.orgName || 'Not specified'}</span>
+                </div>
+              )}
+
+              {profileToView.profession === 'freelancer' && (
+                <div className="flex items-center gap-3 text-sm text-gray-800 font-semibold relative z-10">
+                  <Laptop className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                  <span className="font-medium text-gray-700">Independent Freelancer</span>
+                </div>
+              )}
+            </div>
 
             {/* General joined date bullet */}
             <div className="w-full pl-2 mb-8 flex items-center gap-3 text-sm text-gray-800 font-semibold">
