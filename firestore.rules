@@ -1,65 +1,21 @@
-rules_version='2';
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    
+    // -----------------------------------------------------------------------
+    // SECURE BACKEND-ONLY ARCHITECTURE
+    // -----------------------------------------------------------------------
+    // The Collab-Mind application uses a Node.js backend with the 
+    // firebase-admin SDK to handle all database operations. 
+    // Since the admin SDK automatically bypasses these security rules, 
+    // we strictly deny all direct client-side reads and writes. 
+    // This prevents malicious actors from using the public Firebase 
+    // configuration to access the database directly.
+    // -----------------------------------------------------------------------
+    
+    match /{document=**} {
+      allow read, write: if false;
     }
-
-    // Projects collection
-    match /projects/{projectId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
-    }
-
-    // Collaboration requests
-    match /collaboration_requests/{requestId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && 
-        (request.auth.uid == resource.data.requesterId || request.auth.uid == resource.data.projectOwnerId);
-    }
-
-    // Notifications
-    match /notifications/{notificationId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-
-    // Active collaborations
-    match /active_collaborations/{collaborationId} {
-      allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.ownerId || request.auth.uid == resource.data.builderId);
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && 
-        (request.auth.uid == resource.data.ownerId || request.auth.uid == resource.data.builderId);
-    }
-
-    // Messages (encrypted chat)
-    match /messages/{messageId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.senderId;
-    }
-
-    // Certifications (admin-managed, read-only for users)
-    match /certifications/{certificationId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Feedback collection - allow anyone to create, only admins can read/update/delete
-    match /feedback/{feedbackId} {
-      allow create: if true; // Allow anonymous feedback submission
-      allow read, update, delete: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Mail queue removed per request
   }
 }

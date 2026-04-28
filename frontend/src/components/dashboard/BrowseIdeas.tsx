@@ -41,14 +41,14 @@ export default function BrowseIdeas() {
 
   // Find ideas where the user has an approved or rejected request to hide them
   const hiddenIdeaIds = (requests || [])
-    .filter(r => r.requesterId === user.id && (r.status === 'approved' || r.status === 'rejected'))
+    .filter(r => r.requesterId === (user.uid || user.id) && (r.status === 'approved' || r.status === 'rejected'))
     .map(r => r.ideaId);
 
   const availableIdeas = (ideas || []).filter((idea) => {
     return (
       idea.isPublished &&
       (idea.status === 'open' || idea.status === 'in_review') &&
-      idea.userId !== user.id &&
+      idea.userId !== (user.uid || user.id) &&
       !hiddenIdeaIds.includes(idea.id)
     );
   });
@@ -60,7 +60,7 @@ export default function BrowseIdeas() {
     return matchesSearch && matchesStatus;
   });
 
-  const hasRequested = (ideaId: string) => (requests || []).some(r => r.ideaId === ideaId && r.requesterId === user.id);
+  const hasRequested = (ideaId: string) => (requests || []).some(r => r.ideaId === ideaId && r.requesterId === (user.uid || user.id));
 
   const handleRequest = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +69,7 @@ export default function BrowseIdeas() {
     addRequest({
       ideaId: selectedIdea.id,
       ideaTitle: selectedIdea.title,
-      requesterId: user.id,
+      requesterId: user.uid || user.id,
       requesterName: user.displayName,
       ownerId: selectedIdea.userId,
       answer: requestAnswer,

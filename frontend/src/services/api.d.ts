@@ -3,3 +3,8 @@ export function askNexusAI(data: unknown, token?: string): Promise<any>;
 export function getAdminDashboard(token?: string): Promise<any>;
 export function updateAdminUserRole(userId: string, role: string, token?: string): Promise<any>;
 export function generateProjectIdeas(message: string, history: any[], token?: string): Promise<any>;
+export function requestPatent(ideaId: string, ideaTitle: string, token?: string): Promise<any>;
+export function createCollaborationRequest(data: any, token?: string): Promise<any>;
+export function listCollaborationRequests(scope?: string, token?: string): Promise<any>;
+export function updateCollaborationRequest(requestId: string, status: string, token?: string): Promise<any>;
+export function submitFeedback(data: any): Promise<any>;

@@ -39,7 +39,7 @@ export default function MyIdeas() {
 
   if (!user) return null;
 
-  const userIdeas = (ideas || []).filter(i => i.userId === user.id);
+  const userIdeas = (ideas || []).filter(i => i.userId === (user.uid || user.id));
   
   // Safely catch legacy 'open' statuses under the 'in_review' filter
   const filteredIdeas = filter === 'all' 
@@ -69,7 +69,7 @@ export default function MyIdeas() {
         addNotification('Draft updated successfully!', 'success');
       } else {
         addIdea({
-          userId: user.id,
+          userId: user.uid || user.id,
           userName: user.displayName,
           title: formData.title,
           description: formData.description,
@@ -84,7 +84,7 @@ export default function MyIdeas() {
     } else {
       setIdeaToPublish({
         ...(editingId ? { id: editingId } : {}),
-        userId: user.id,
+        userId: user.uid || user.id,
         userName: user.displayName,
         title: formData.title,
         description: formData.description,

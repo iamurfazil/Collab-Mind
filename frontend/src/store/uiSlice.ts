@@ -15,6 +15,8 @@ export interface UISlice {
   addNotification: (message: string, type: 'success' | 'error' | 'info') => void;
   feedbackList: any[];
   addFeedback: (feedback: any) => Promise<void>;
+  certificates: any[];
+  addCertificate: (cert: any) => void;
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -75,5 +77,7 @@ export const createUISlice: StateCreator<UISlice, [], [], UISlice> = (set) => ({
         notifications: state.notifications.filter((n) => n.id !== id)
       }));
     }, 5000);
-  }
+  },
+  certificates: [],
+  addCertificate: (cert: any) => set((state) => ({ certificates: [...state.certificates, cert] }))
 });

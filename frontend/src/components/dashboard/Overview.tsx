@@ -21,18 +21,18 @@ export default function Overview() {
 
   if (!user) return null;
 
-  const userIdeas = (ideas || []).filter((i) => i.userId === user.id);
+  const userIdeas = (ideas || []).filter((i) => i.userId === (user.uid || user.id));
   const pendingRequests = (requests || []).filter(
-    (r) => r.status === "pending" && r.ownerId === user.id,
+    (r) => r.status === "pending" && r.ownerId === (user.uid || user.id),
   );
   const activeProjects = (ideas || []).filter(
     (i) =>
-      (i.userId === user.id || (i.collaborators || []).includes(user.id)) &&
+      (i.userId === (user.uid || user.id) || (i.collaborators || []).includes(user.uid || user.id)) &&
       (i.status === "in_review" || i.status === "pending_review"),
   ).length;
   const completedProjects = (ideas || []).filter(
     (i) =>
-      (i.userId === user.id || (i.collaborators || []).includes(user.id)) &&
+      (i.userId === (user.uid || user.id) || (i.collaborators || []).includes(user.uid || user.id)) &&
       i.status === "completed",
   ).length;
   const trustScore = Math.max(

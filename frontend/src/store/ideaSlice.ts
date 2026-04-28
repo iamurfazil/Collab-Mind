@@ -5,6 +5,7 @@ export interface IdeaSlice {
   ideas: any[];
   fetchIdeas: (token: string) => Promise<void>;
   addIdea: (idea: any, token: string) => Promise<void>;
+  updateIdea: (id: string, updates: any) => void;
 }
 
 export const createIdeaSlice: StateCreator<IdeaSlice, [], [], IdeaSlice> = (set) => ({
@@ -28,5 +29,12 @@ export const createIdeaSlice: StateCreator<IdeaSlice, [], [], IdeaSlice> = (set)
       const payload = await res.json();
       set((state) => ({ ideas: [...state.ideas, payload.data] }));
     }
+  },
+  updateIdea: (id: string, updates: any) => {
+    set((state) => ({
+      ideas: state.ideas.map((idea) =>
+        idea.id === id ? { ...idea, ...updates } : idea
+      ),
+    }));
   }
 });

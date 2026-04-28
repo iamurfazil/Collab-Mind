@@ -155,7 +155,7 @@ export default function CurrentProjects() {
     }
 
     if (idea && (idea.collaborators || []).length > 0) {
-      (idea.collaborators || []).forEach(collabId => {
+      (idea.collaborators || []).forEach((collabId: string) => {
         addCertificate({
           userId: collabId,
           projectId: idea.id,
@@ -337,6 +337,8 @@ export default function CurrentProjects() {
                 index={index}
                 onUpdateStatus={() => {}}
                 onEnterWorkspace={() => handleEnterWorkspace(idea.id)} 
+                // @ts-ignore
+                onReviewProject={() => {}}
               />
             ))}
           </div>

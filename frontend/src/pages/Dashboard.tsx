@@ -101,7 +101,17 @@ const navItems = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, showProfileModal, darkMode } = useStore(); // Added darkMode from store
+  const { 
+    user, authToken, logout, showProfileModal, darkMode,
+    fetchIdeas, fetchRequests 
+  } = useStore();
+
+  useEffect(() => {
+    if (authToken) {
+      fetchIdeas(authToken);
+      fetchRequests(authToken);
+    }
+  }, [authToken, fetchIdeas, fetchRequests]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [nexusFabOpen, setNexusFabOpen] = useState(false);
